@@ -85,6 +85,8 @@ LLM_MODEL=your_model_name
 
 Without those values, QazScribe runs in fallback mode and clearly marks translation as unavailable.
 
+Runtime files are temporary. Uploads and processed audio are deleted after `UPLOAD_RETENTION_HOURS`; generated documents are deleted after `OUTPUT_RETENTION_HOURS`. Cleanup runs on startup and in a background loop.
+
 ## Configuration
 
 Copy the example environment file if local overrides are needed:
@@ -106,4 +108,4 @@ ffmpeg -version
 git --version
 ```
 
-Later stages will add cleanup and Ubuntu deployment files.
+Later stages will add Ubuntu deployment files.

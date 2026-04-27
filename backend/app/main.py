@@ -1,4 +1,6 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
+from threading import Event, Thread
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -8,14 +10,38 @@ from backend.app.api.routes_download import router as download_router
 from backend.app.api.routes_tasks import router as tasks_router
 from backend.app.api.routes_upload import router as upload_router
 from backend.app.config import get_settings
+from backend.app.services.cleanup_service import cleanup_loop, run_cleanup
 
 
 settings = get_settings()
+cleanup_stop_event = Event()
+cleanup_thread: Thread | None = None
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    global cleanup_thread
+
+    run_cleanup(settings)
+    cleanup_thread = Thread(
+        target=cleanup_loop,
+        args=(settings, cleanup_stop_event),
+        daemon=True,
+    )
+    cleanup_thread.start()
+
+    yield
+
+    cleanup_stop_event.set()
+    if cleanup_thread and cleanup_thread.is_alive():
+        cleanup_thread.join(timeout=2)
+
 
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
     description="MVP web system for conference audio processing and Kazakh meeting notes.",
+    lifespan=lifespan,
 )
 
 frontend_path = settings.frontend_path

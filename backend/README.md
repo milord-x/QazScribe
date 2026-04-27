@@ -27,5 +27,6 @@ Implemented:
 - faster-whisper transcription with CPU/CUDA configuration
 - Kazakh translation and structured notes with fallback mode
 - TXT, HTML, DOCX, and PDF document export
+- retention cleanup for uploads, processed files, and outputs
 
-Cleanup is planned for later stages.
+Ubuntu deployment files are planned for later stages.
