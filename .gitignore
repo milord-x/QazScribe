@@ -29,3 +29,9 @@ data/outputs/*
 .idea/
 .vscode/
 .codex
+
+AGENTS.md
+ChatGPT.md
+STEPS.md
+TASK.md
+TASK_*.md

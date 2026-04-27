@@ -4,6 +4,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend.app.api.routes_tasks import router as tasks_router
+from backend.app.api.routes_upload import router as upload_router
 from backend.app.config import get_settings
 
 
@@ -20,6 +22,9 @@ assets_path = frontend_path
 
 if assets_path.exists():
     app.mount("/static", StaticFiles(directory=assets_path), name="static")
+
+app.include_router(upload_router)
+app.include_router(tasks_router)
 
 
 @app.get("/")

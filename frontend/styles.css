@@ -119,6 +119,39 @@ input:disabled {
   color: var(--muted);
 }
 
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.status-grid > div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.status-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-grid strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  color: #b42318;
+  font-weight: 700;
+}
+
 #health-status {
   margin-bottom: 0;
   font-weight: 700;
@@ -137,5 +170,9 @@ input:disabled {
   .button-row,
   button {
     width: 100%;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
   }
 }

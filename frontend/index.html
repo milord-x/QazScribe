@@ -19,18 +19,17 @@
 
       <section class="panel" aria-labelledby="upload-title">
         <h2 id="upload-title">Audio upload</h2>
-        <form class="upload-form">
+        <form class="upload-form" id="upload-form">
           <label for="audio-file">Audio file</label>
           <input
             id="audio-file"
-            name="audio-file"
+            name="file"
             type="file"
             accept=".mp3,.wav,.m4a,.ogg,.webm,.mp4,audio/*,video/mp4"
-            disabled
           />
-          <button type="button" disabled>Upload audio</button>
+          <button type="submit" id="upload-button">Upload audio</button>
         </form>
-        <p class="muted">Upload processing will be added in Stage 2.</p>
+        <p class="muted">Supported formats: mp3, wav, m4a, ogg, webm, mp4.</p>
       </section>
 
       <section class="panel" aria-labelledby="record-title">
@@ -46,6 +45,26 @@
       <section class="panel" aria-labelledby="status-title">
         <h2 id="status-title">System status</h2>
         <p id="health-status">Checking backend health...</p>
+      </section>
+
+      <section class="panel" aria-labelledby="task-title">
+        <h2 id="task-title">Processing status</h2>
+        <div class="status-grid">
+          <div>
+            <span class="status-label">Task ID</span>
+            <strong id="task-id">No task yet</strong>
+          </div>
+          <div>
+            <span class="status-label">Status</span>
+            <strong id="task-status">Idle</strong>
+          </div>
+          <div>
+            <span class="status-label">Progress</span>
+            <strong id="task-progress">0%</strong>
+          </div>
+        </div>
+        <p id="task-message" class="muted">Upload an audio file to create a task.</p>
+        <p id="task-error" class="error" hidden></p>
       </section>
     </main>
 

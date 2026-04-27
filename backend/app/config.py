@@ -32,6 +32,18 @@ class Settings(BaseSettings):
     def frontend_path(self) -> Path:
         return PROJECT_ROOT / self.frontend_dir
 
+    @property
+    def data_path(self) -> Path:
+        return PROJECT_ROOT / "data"
+
+    @property
+    def uploads_path(self) -> Path:
+        return self.data_path / "uploads"
+
+    @property
+    def max_upload_bytes(self) -> int:
+        return self.max_upload_mb * 1024 * 1024
+
 
 @lru_cache
 def get_settings() -> Settings:
