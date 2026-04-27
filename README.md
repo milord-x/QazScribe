@@ -6,7 +6,7 @@ QazScribe is an MVP web system for conference and meeting audio. The target pipe
 audio -> speech recognition -> Kazakh translation -> structured notes -> document export
 ```
 
-This repository currently contains a runnable FastAPI backend, static frontend, health endpoint, and Stage 2 upload/task status flow.
+This repository currently contains a runnable FastAPI backend, static frontend, health endpoint, upload/task status flow, and browser recording upload.
 
 ## Project Structure
 
@@ -76,4 +76,4 @@ ffmpeg -version
 git --version
 ```
 
-Later stages will add browser recording, ffmpeg conversion, faster-whisper transcription, Kazakh translation, document exports, cleanup, and Ubuntu deployment files.
+Later stages will add ffmpeg conversion, faster-whisper transcription, Kazakh translation, document exports, cleanup, and Ubuntu deployment files.

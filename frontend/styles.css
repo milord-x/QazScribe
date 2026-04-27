@@ -114,6 +114,12 @@ input:disabled {
   gap: 10px;
 }
 
+audio {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+}
+
 .muted {
   margin: 14px 0 0;
   color: var(--muted);

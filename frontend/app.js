@@ -2,6 +2,11 @@ const healthStatus = document.querySelector("#health-status");
 const uploadForm = document.querySelector("#upload-form");
 const audioFileInput = document.querySelector("#audio-file");
 const uploadButton = document.querySelector("#upload-button");
+const recordStartButton = document.querySelector("#record-start");
+const recordStopButton = document.querySelector("#record-stop");
+const recordUploadButton = document.querySelector("#record-upload");
+const recordStatusEl = document.querySelector("#record-status");
+const recordPreview = document.querySelector("#record-preview");
 const taskIdEl = document.querySelector("#task-id");
 const taskStatusEl = document.querySelector("#task-status");
 const taskProgressEl = document.querySelector("#task-progress");
@@ -9,6 +14,10 @@ const taskMessageEl = document.querySelector("#task-message");
 const taskErrorEl = document.querySelector("#task-error");
 
 let pollTimer = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedBlob = null;
+let recordingStream = null;
 
 async function loadHealth() {
   try {
@@ -88,24 +97,16 @@ function startPolling(taskId) {
   }, 1500);
 }
 
-async function uploadAudio(event) {
-  event.preventDefault();
-
-  const file = audioFileInput.files[0];
-  if (!file) {
-    setTaskView({ error: "Choose an audio file first." });
-    return;
-  }
-
+async function uploadFile(file, button, uploadMessage) {
   const formData = new FormData();
   formData.append("file", file);
 
-  uploadButton.disabled = true;
+  button.disabled = true;
   setTaskView({
     taskId: "",
     status: "Uploading",
     progress: 0,
-    message: "Uploading audio file...",
+    message: uploadMessage,
     error: "",
   });
 
@@ -135,9 +136,121 @@ async function uploadAudio(event) {
       error: error.message,
     });
   } finally {
-    uploadButton.disabled = false;
+    button.disabled = false;
   }
 }
 
+async function uploadAudio(event) {
+  event.preventDefault();
+
+  const file = audioFileInput.files[0];
+  if (!file) {
+    setTaskView({ error: "Choose an audio file first." });
+    return;
+  }
+
+  await uploadFile(file, uploadButton, "Uploading audio file...");
+}
+
+function setRecordingState(state, message) {
+  recordStatusEl.textContent = message;
+
+  if (state === "unsupported") {
+    recordStartButton.disabled = true;
+    recordStopButton.disabled = true;
+    recordUploadButton.disabled = true;
+    return;
+  }
+
+  recordStartButton.disabled = state === "recording" || state === "uploading";
+  recordStopButton.disabled = state !== "recording";
+  recordUploadButton.disabled = state !== "ready";
+}
+
+function getRecorderOptions() {
+  const preferredTypes = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+  ];
+
+  const mimeType = preferredTypes.find((type) => MediaRecorder.isTypeSupported(type));
+  return mimeType ? { mimeType } : undefined;
+}
+
+async function startRecording() {
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+    setRecordingState("unsupported", "Browser recording is not supported here.");
+    return;
+  }
+
+  try {
+    recordedChunks = [];
+    recordedBlob = null;
+    recordPreview.hidden = true;
+    recordPreview.removeAttribute("src");
+
+    recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(recordingStream, getRecorderOptions());
+
+    mediaRecorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    });
+
+    mediaRecorder.addEventListener("stop", () => {
+      const mimeType = mediaRecorder.mimeType || "audio/webm";
+      recordedBlob = new Blob(recordedChunks, { type: mimeType });
+      const previewUrl = URL.createObjectURL(recordedBlob);
+      recordPreview.src = previewUrl;
+      recordPreview.hidden = false;
+
+      recordingStream.getTracks().forEach((track) => track.stop());
+      recordingStream = null;
+      mediaRecorder = null;
+
+      setRecordingState("ready", "Recording ready for upload.");
+    });
+
+    mediaRecorder.start();
+    setRecordingState("recording", "Recording...");
+  } catch (error) {
+    setRecordingState("idle", "Microphone access failed.");
+    setTaskView({ error: error.message });
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+    setRecordingState("stopping", "Stopping recording...");
+  }
+}
+
+async function uploadRecording() {
+  if (!recordedBlob) {
+    setTaskView({ error: "Record audio before uploading." });
+    return;
+  }
+
+  const extension = recordedBlob.type.includes("ogg") ? "ogg" : "webm";
+  const file = new File([recordedBlob], `browser-recording.${extension}`, {
+    type: recordedBlob.type || "audio/webm",
+  });
+
+  setRecordingState("uploading", "Uploading recording...");
+  await uploadFile(file, recordUploadButton, "Uploading browser recording...");
+  setRecordingState("ready", "Recording uploaded. You can upload it again or record a new one.");
+}
+
 uploadForm.addEventListener("submit", uploadAudio);
+recordStartButton.addEventListener("click", startRecording);
+recordStopButton.addEventListener("click", stopRecording);
+recordUploadButton.addEventListener("click", uploadRecording);
+
+if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+  setRecordingState("unsupported", "Browser recording is not supported here.");
+}
+
 loadHealth();

@@ -22,5 +22,6 @@ Implemented:
 - `POST /api/upload`
 - `GET /api/tasks/{task_id}`
 - static frontend serving from `frontend/`
+- browser recording upload through the same upload endpoint
 
-Browser recording, ASR, translation, summaries, exports, and cleanup are planned for later stages.
+ASR, translation, summaries, exports, and cleanup are planned for later stages.

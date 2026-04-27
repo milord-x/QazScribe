@@ -35,11 +35,12 @@
       <section class="panel" aria-labelledby="record-title">
         <h2 id="record-title">Browser recording</h2>
         <div class="button-row">
-          <button type="button" disabled>Start recording</button>
-          <button type="button" disabled>Stop recording</button>
-          <button type="button" disabled>Upload recording</button>
+          <button type="button" id="record-start">Start recording</button>
+          <button type="button" id="record-stop" disabled>Stop recording</button>
+          <button type="button" id="record-upload" disabled>Upload recording</button>
         </div>
-        <p class="muted">Microphone recording will be added in Stage 2.</p>
+        <p id="record-status" class="muted">No recording yet.</p>
+        <audio id="record-preview" controls hidden></audio>
       </section>
 
       <section class="panel" aria-labelledby="status-title">
