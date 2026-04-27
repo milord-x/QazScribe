@@ -1,159 +1,529 @@
-344# TASK: Conference AI Notes — MVP Web System
+# QazScribe — Full Project Brief and Agent Task Plan
 
-## 0. Context
+## 0. Project Name
 
-We are building a fast MVP web system for a paid university-related project.
+**QazScribe**
 
-The system is for conferences, meetings, academic sessions, and similar events.  
-Its purpose is to convert speech/audio into a structured Kazakh-language document.
+Meaning:
 
-Main pipeline:
+- **Qaz** = Kazakhstan / Kazakh language context
+- **Scribe** = a person/system that turns speech into written records
 
-```text
-Audio conference / recorded speech
-→ speech recognition
-→ text transcription
-→ Kazakh translation
-→ structured summary / meeting notes
-→ export to multiple document formats
-```
-
-The user will mainly develop on their own laptop and push all work to GitHub.  
-The target deployment machine is a separate Ubuntu desktop PC with RTX 4070 Ti.  
-Do not assume we are coding directly on that Ubuntu machine right now.
-
-Current workflow:
-
-1. Project already exists inside `~/Projects`.
-2. GitHub repository is already connected.
-3. Development happens locally on the user's laptop.
-4. Every meaningful change must be committed/pushed to GitHub.
-5. After the first working prototype is ready, it will be cloned/deployed on the Ubuntu RTX machine.
-6. Then GPU/Whisper/CUDA deployment will be configured and tested there.
-
-Do not build a huge enterprise system.  
-The immediate goal is a working MVP prototype that can be shown quickly.
+QazScribe is a web-based speech-to-document system for meetings, conferences, academic sessions, and university events.
 
 ---
 
-## 1. Target Deployment Machine
+## 1. What This Project Is
 
-Target machine specs:
+QazScribe is a public web application that processes speech/audio and converts it into a structured Kazakh-language document.
+
+The system is intended for university-related use. It should help process long conferences, meetings, and spoken sessions where a lot of information is said in different languages.
+
+The core pipeline is:
+
+```text
+Audio conference / speech file
+→ speech recognition
+→ raw transcript
+→ translation to Kazakh
+→ structured notes
+→ short summary
+→ final document export
+```
+
+The project is not a large enterprise product at this stage. It is a fast MVP prototype that must be good enough to demonstrate how the system works.
+
+---
+
+## 2. Why This Project Exists
+
+The customer needs to show a working program soon. The original responsible person had a deadline approaching, so this MVP needs to be built quickly.
+
+The system does not need to be perfect for long-term enterprise deployment yet. The immediate goal is to create a working public prototype that can:
+
+1. Accept audio.
+2. Recognize speech.
+3. Convert speech to text.
+4. Translate or produce the result in Kazakh.
+5. Generate a structured document.
+6. Export the result in multiple formats.
+7. Run on the customer's Ubuntu PC with RTX GPU.
+8. Be accessible through the internet, not only locally.
+
+---
+
+## 3. Important Development Context
+
+The project already exists inside:
+
+```text
+~/Projects
+```
+
+The project is connected to GitHub.
+
+Development workflow:
+
+1. Main development is done on the developer's own laptop.
+2. Work must be pushed to GitHub regularly.
+3. The Ubuntu RTX machine is the target deployment machine, not the main development machine.
+4. Do not assume the developer wants to code directly on the Ubuntu machine.
+5. First build a working prototype locally.
+6. Then clone/pull the repository on the Ubuntu machine.
+7. Then configure GPU/Whisper/CUDA and public access.
+
+Reason:
+
+The developer does not want to work directly on the customer's Ubuntu PC. GitHub is the source of truth.
+
+---
+
+## 4. Target Deployment Machine
+
+The target machine is a desktop PC with Ubuntu.
+
+Known specs:
 
 ```text
 OS: Ubuntu 24.04.1 LTS
+Kernel: 6.11.0-26-generic
+Desktop: GNOME 46
 CPU: Intel Core i5-13400F
+Cores: 10 physical class, 16 threads
 GPU: NVIDIA GeForce RTX 4070 Ti
-RAM: 16 GB
-Disk: NVMe, but root partition has limited free space
 NVIDIA driver: 535.230.02
+RAM: 16 GB
+Storage: 1 TB NVMe total
+Root partition: about 296 GB
+Root used: about 266 GB
+Free root space: limited, around 30 GB
+Network: Ethernet + Wi-Fi
 ```
 
-Important:
+Important notes:
 
-- The target Ubuntu machine has RTX 4070 Ti, so ASR should be designed to support GPU acceleration.
-- But the first prototype must also run on the developer laptop without requiring GPU.
-- GPU-specific setup should be isolated and documented.
-- Do not hard-code machine-specific paths.
-- Do not assume permanent large storage.
-- Uploaded audio and generated files must be temporary and automatically cleaned.
+- The RTX 4070 Ti is strong enough for local Whisper/faster-whisper processing.
+- RAM is 16 GB. This is not the same as disk storage.
+- Root partition has limited free storage, so data cleanup is mandatory.
+- The system must not store large files forever.
+- GPU setup will be tested later on the Ubuntu machine.
 
----
+Before GPU deployment, check:
 
-## 2. Product Goal
-
-Build a public web application for processing conference audio.
-
-User can:
-
-1. Open a website.
-2. Upload an audio file.
-3. Or record audio directly in the browser.
-4. Send the audio to the backend.
-5. Backend transcribes speech using Whisper/faster-whisper.
-6. Backend translates or normalizes the result into Kazakh.
-7. Backend generates:
-   - full transcript,
-   - Kazakh translation,
-   - short summary,
-   - structured meeting notes,
-   - decisions,
-   - action items,
-   - key points.
-8. User downloads the result in 4 formats:
-   - TXT,
-   - DOCX,
-   - PDF,
-   - HTML.
-
-No login/auth is needed for MVP.
+```bash
+nvidia-smi
+python3 --version
+ffmpeg -version
+git --version
+```
 
 ---
 
-## 3. Critical Constraint
+## 5. Public Server Requirement
 
-This is a short-deadline MVP.
+A local-only website is not enough.
 
-Do not over-engineer.
+The site must be publicly accessible because conferences may happen in another part of the city. Users may need to open the website from outside the university network.
 
-Avoid:
+Required deployment idea:
 
-- complex user accounts,
-- roles/permissions,
-- admin panels,
-- heavy database design,
-- microservices,
-- Docker-only dependency if it slows progress,
-- Next.js/React complexity unless already present,
-- fancy UI before backend works,
-- complicated offline LLM stack at the first stage.
+```text
+Public internet user
+→ public HTTPS URL
+→ tunnel / reverse proxy
+→ Ubuntu PC
+→ QazScribe backend
+→ RTX Whisper processing
+```
 
-Prefer:
+Preferred public access option for MVP:
 
-- simple backend,
-- simple frontend,
-- clear working pipeline,
-- local filesystem storage,
-- SQLite only if needed for task status,
-- clean modular Python code,
-- easy deployment instructions.
+```text
+Cloudflare Tunnel
+```
+
+Reason:
+
+- It does not require a public static IP.
+- It does not require router port forwarding.
+- It can expose a local service through a public HTTPS URL.
+- It is suitable for a fast prototype.
+- The Ubuntu PC remains the compute server.
+
+Alternative options:
+
+1. **ngrok** — fast for demos, but less ideal for stable delivery.
+2. **VPS reverse proxy** — possible, but more work.
+3. **Tailscale Funnel** — possible but not the first choice for a public website.
+4. **Public IP + nginx** — good if the university network allows it, but likely slower to arrange.
+
+Do not implement Cloudflare Tunnel inside the application code. Put deployment instructions in `deploy/cloudflare-tunnel-notes.md`.
 
 ---
 
-## 4. Preferred Stack
+## 6. Main Functional Requirements
 
-Use this unless the existing project already has a different clear structure:
+QazScribe must support two main input modes.
+
+### 6.1 Upload Existing Audio File
+
+The user can upload a recorded conference or meeting audio file.
+
+Supported initial formats:
+
+```text
+mp3, wav, m4a, ogg, webm, mp4
+```
+
+Backend must:
+
+1. Validate file type.
+2. Validate file size.
+3. Save file temporarily.
+4. Create a unique task ID.
+5. Process the task.
+6. Return task status and final downloads.
+
+This is the most stable and highest-priority mode.
+
+---
+
+### 6.2 Record Audio in Browser
+
+The user can record speech directly from the website.
+
+Frontend should provide:
+
+```text
+Start recording
+Stop recording
+Upload recording
+```
+
+Implementation:
+
+```text
+Browser MediaRecorder API
+→ creates audio blob, usually webm
+→ upload blob to backend
+→ process like normal audio file
+```
+
+Do not implement live real-time transcription in the first MVP.
+
+MVP recording is:
+
+```text
+record first → upload → process → show result
+```
+
+---
+
+## 7. Processing Pipeline
+
+The complete planned pipeline:
+
+```text
+1. User uploads or records audio.
+2. Backend stores audio temporarily.
+3. Audio is converted with ffmpeg.
+4. Whisper/faster-whisper transcribes speech.
+5. System detects language if possible.
+6. Transcript is cleaned/normalized.
+7. Text is translated to Kazakh.
+8. Summary is generated.
+9. Structured meeting notes are generated.
+10. Final documents are generated in TXT, DOCX, PDF, HTML.
+11. User downloads the result.
+12. Old data is automatically deleted.
+```
+
+---
+
+## 8. Language Requirements
+
+The customer is especially interested in:
+
+```text
+Kazakh
+Russian
+English
+Turkic languages
+```
+
+They were interested in Whisper, so Whisper/faster-whisper should be the main ASR engine first.
+
+Expected behavior:
+
+- Auto-detect language when possible.
+- Support Kazakh, Russian, English as primary practical targets.
+- Be realistic about other Turkic languages: quality may vary depending on audio quality and model support.
+- Mixed-language speech may be less accurate.
+
+For MVP, use automatic language detection by default.
+
+Optional UI selector later:
+
+```text
+Auto
+Kazakh
+Russian
+English
+Turkish
+Uzbek
+Kyrgyz
+Other
+```
+
+---
+
+## 9. Output Requirements
+
+The system must generate four output formats:
+
+```text
+TXT
+DOCX
+PDF
+HTML
+```
+
+Each output should include:
+
+1. Project/system title.
+2. Processing date and time.
+3. Detected language.
+4. Original transcript.
+5. Kazakh translation.
+6. Short summary.
+7. Detailed summary or structured notes.
+8. Key points.
+9. Decisions.
+10. Action items.
+11. Open questions or risks if available.
+
+Download endpoints should exist for each format.
+
+---
+
+## 10. No Authentication for MVP
+
+The MVP does not need login, accounts, roles, or admin panels.
+
+Do not add authentication unless explicitly requested later.
+
+Reason:
+
+- Deadline is short.
+- It is mainly a demonstration prototype.
+- Auth would slow down the first working version.
+
+---
+
+## 11. Data Storage and Cleanup Requirement
+
+The customer does not need permanent storage.
+
+Files should remain on the server only temporarily during and shortly after processing.
+
+This is important because disk space is limited.
+
+Correct storage model:
+
+```text
+temporary uploads
+temporary processed files
+temporary generated documents
+automatic cleanup after expiration
+```
+
+Recommended retention policy for MVP:
+
+```text
+Uploaded original audio: delete after 6 hours
+Converted audio: delete after 6 hours
+Generated documents: delete after 24 hours
+Task metadata: delete after 7 days or reset on restart if in-memory
+```
+
+Configurable settings:
+
+```text
+MAX_UPLOAD_MB=300
+UPLOAD_RETENTION_HOURS=6
+OUTPUT_RETENTION_HOURS=24
+TASK_RETENTION_DAYS=7
+```
+
+Must be implemented safely:
+
+- Never delete outside the project `data/` directory.
+- Use safe path handling.
+- Do not follow dangerous user-provided paths.
+- Cleanup should run on app startup and optionally in a background loop.
+
+---
+
+## 12. Recommended Technical Stack
+
+Use a simple MVP-oriented stack.
+
+Preferred:
 
 ```text
 Backend: Python + FastAPI
 Frontend: plain HTML/CSS/JavaScript
 ASR: faster-whisper
 Audio conversion: ffmpeg
-Document generation:
-  - TXT: plain file
-  - DOCX: python-docx
-  - PDF: HTML-to-PDF or ReportLab
-  - HTML: Jinja2 template
+Document generation: python-docx, HTML template, PDF generator
 Storage: local filesystem
 Task status: in-memory or SQLite
-Deployment: uvicorn + systemd + nginx or Cloudflare Tunnel later
+Deployment: uvicorn + systemd + nginx + optional Cloudflare Tunnel
+```
+
+Avoid heavy frontend frameworks unless already present and necessary.
+
+Reason:
+
+- Plain HTML/CSS/JS is easier and faster for MVP.
+- FastAPI is simple and suitable for file upload + processing.
+- Python is best for Whisper and document generation.
+- Deployment is easier without complex Node/React builds.
+
+---
+
+## 13. ASR / Whisper Plan
+
+Use `faster-whisper` as the main ASR engine.
+
+Design requirement:
+
+- It must run in CPU mode on the developer laptop.
+- It must support CUDA mode on the RTX 4070 Ti Ubuntu machine.
+- Device and model must be configurable.
+- Do not hard-code GPU.
+
+Example development config:
+
+```text
+ASR_MODEL_SIZE=small
+ASR_DEVICE=cpu
+ASR_COMPUTE_TYPE=int8
+```
+
+Example target Ubuntu GPU config:
+
+```text
+ASR_MODEL_SIZE=medium
+ASR_DEVICE=cuda
+ASR_COMPUTE_TYPE=float16
+```
+
+Possible later upgrade:
+
+```text
+ASR_MODEL_SIZE=large-v3
+```
+
+But do not start with the heaviest model. First make the pipeline work.
+
+ASR output should include:
+
+```text
+detected language
+segments with timestamps
+full transcript
+```
+
+---
+
+## 14. Translation and Summary Plan
+
+For the first MVP, use a replaceable service architecture.
+
+Create separate modules:
+
+```text
+translation_service.py
+summary_service.py
+```
+
+Do not hard-code one provider deeply into the code.
+
+Translation target:
+
+```text
+Kazakh
+```
+
+Summary/structuring output:
+
+```json
+{
+  "title": "...",
+  "short_summary": "...",
+  "detailed_summary": "...",
+  "key_points": [],
+  "decisions": [],
+  "action_items": [],
+  "participants_or_speakers": [],
+  "risks_or_open_questions": [],
+  "final_notes": "..."
+}
+```
+
+Important:
+
+- Do not invent API keys.
+- Do not commit secrets.
+- Use `.env.example`.
+- If no API key is configured, the app must still run with fallback text.
+- Fallback can produce simple placeholder summary instead of crashing.
+
+Best MVP approach:
+
+```text
+Whisper local
+Translation and structured notes through an external LLM API if configured
+Fallback mode if not configured
 ```
 
 Reason:
 
-- FastAPI is fast to build.
-- Plain frontend is easier to deploy.
-- No need for npm complexity for MVP.
-- Python ecosystem is good for ASR and document generation.
+- Local Whisper uses RTX GPU.
+- Translation and Kazakh summarization quality is better with a strong LLM API.
+- Fully local LLM on 16 GB RAM may be limited and may produce weaker Kazakh output.
 
 ---
 
-## 5. Required Project Structure
+## 15. Agent Concept for Presentation
 
-If structure is absent, create this:
+The customer mentioned adding multiple agents later. We can present the backend modules as agents without building a complicated autonomous agent framework.
+
+Use these names in documentation/UI if useful:
 
 ```text
-conference-ai-notes/
+ASR Agent: converts speech to text
+Language Agent: detects language and normalizes transcript
+Translation Agent: translates content into Kazakh
+Summary Agent: creates short and detailed summaries
+Protocol Agent: structures meeting notes
+Document Agent: exports TXT/DOCX/PDF/HTML
+Cleanup Agent: deletes expired files
+```
+
+Important:
+
+Do not create unnecessary LangChain/autonomous-agent complexity in MVP. Simple Python service modules are enough.
+
+---
+
+## 16. Required Project Structure
+
+If the existing repository does not already have a good structure, use this:
+
+```text
+QazScribe/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py
@@ -183,7 +553,7 @@ conference-ai-notes/
 │
 ├── deploy/
 │   ├── install_ubuntu.sh
-│   ├── conference-ai.service
+│   ├── qazscribe.service
 │   ├── nginx.conf
 │   └── cloudflare-tunnel-notes.md
 │
@@ -197,41 +567,40 @@ conference-ai-notes/
 └── TASK.md
 ```
 
-Do not commit generated audio files, output documents, virtual environments, cache files, or secrets.
+Do not commit generated data files.
 
 ---
 
-## 6. MVP Features
+## 17. Backend API Plan
 
-### 6.1 Audio Upload
-
-Implement a frontend upload form.
-
-Supported file types:
+### Health
 
 ```text
-mp3, wav, m4a, ogg, webm, mp4
+GET /api/health
 ```
 
-Backend must:
+Returns:
 
-- validate extension,
-- validate size,
-- store file under `data/uploads/{task_id}/`,
-- create task ID,
-- start processing,
-- return task ID.
+```json
+{
+  "status": "ok",
+  "service": "QazScribe"
+}
+```
 
-For MVP, synchronous processing is acceptable only for short files.  
-Prefer background task if simple.
+---
 
-Recommended endpoint:
+### Upload
 
 ```text
 POST /api/upload
 ```
 
-Response:
+Input:
+
+- audio/video file
+
+Returns:
 
 ```json
 {
@@ -242,221 +611,7 @@ Response:
 
 ---
 
-### 6.2 Browser Recording
-
-Frontend must support recording from microphone using `MediaRecorder`.
-
-Buttons:
-
-```text
-Start recording
-Stop recording
-Upload recording
-```
-
-The browser recording can produce `.webm`.
-
-Backend treats it like uploaded audio.
-
-Do not overcomplicate live streaming in MVP.  
-This is not required:
-
-```text
-real-time transcription while speaking
-```
-
-MVP recording flow:
-
-```text
-record in browser → save blob → upload to backend → process
-```
-
----
-
-### 6.3 Audio Conversion
-
-Use `ffmpeg`.
-
-Convert input to a standard temporary format:
-
-```text
-mono, 16 kHz WAV
-```
-
-Example conceptual target:
-
-```text
-ffmpeg -i input -ac 1 -ar 16000 output.wav
-```
-
-Implement through Python subprocess safely.
-
-Do not concatenate shell strings unsafely.
-
----
-
-### 6.4 Speech Recognition
-
-Use `faster-whisper`.
-
-Create `asr_service.py`.
-
-Requirements:
-
-- support CPU mode for development laptop;
-- support CUDA mode for target RTX machine;
-- configurable model size;
-- configurable compute type;
-- language auto-detection by default.
-
-Configuration should be in `.env` or `config.py`.
-
-Example config keys:
-
-```text
-ASR_MODEL_SIZE=small
-ASR_DEVICE=cpu
-ASR_COMPUTE_TYPE=int8
-```
-
-For RTX deployment later:
-
-```text
-ASR_MODEL_SIZE=medium
-ASR_DEVICE=cuda
-ASR_COMPUTE_TYPE=float16
-```
-
-Do not hard-code CUDA in the first version.
-
-The ASR result must include:
-
-```text
-detected language
-segments with timestamps
-full transcript
-```
-
----
-
-### 6.5 Translation to Kazakh
-
-For MVP, implement a replaceable translation service.
-
-Do not lock the whole project to one provider.
-
-Create `translation_service.py` with one public function like:
-
-```python
-translate_to_kazakh(text: str) -> str
-```
-
-Initial implementation can be:
-
-1. API-based LLM translation if API key is configured.
-2. Fallback dummy/no-op mode if no API key exists.
-
-The app must still run without API keys, but it should clearly mark translation as unavailable or fallback.
-
-Important:
-
-- Do not invent API keys.
-- Do not hard-code secrets.
-- Use `.env.example`.
-- If no provider is configured, return a clear message in result.
-
----
-
-### 6.6 Summary and Structured Notes
-
-Create `summary_service.py`.
-
-Input:
-
-```text
-transcript
-kazakh translation if available
-detected language
-```
-
-Output structure:
-
-```json
-{
-  "title": "...",
-  "short_summary": "...",
-  "detailed_summary": "...",
-  "key_points": [],
-  "decisions": [],
-  "action_items": [],
-  "participants_or_speakers": [],
-  "risks_or_open_questions": [],
-  "final_notes": "..."
-}
-```
-
-For MVP, use LLM API if configured.  
-If not configured, produce a basic extractive fallback:
-
-- first N sentences as summary,
-- simple section placeholders.
-
-Again:
-
-- no fake API key,
-- no secret in code,
-- no dependency on one provider unless abstracted.
-
----
-
-### 6.7 Document Export
-
-Create `document_service.py`.
-
-Generate four formats:
-
-```text
-TXT
-DOCX
-PDF
-HTML
-```
-
-Required contents:
-
-1. Project/system title
-2. Processing date/time
-3. Detected language
-4. Original transcript
-5. Kazakh translation
-6. Short summary
-7. Structured meeting notes
-8. Key points
-9. Decisions
-10. Action items
-
-Output directory:
-
-```text
-data/outputs/{task_id}/
-```
-
-Download endpoints:
-
-```text
-GET /api/download/{task_id}/txt
-GET /api/download/{task_id}/docx
-GET /api/download/{task_id}/pdf
-GET /api/download/{task_id}/html
-```
-
----
-
-### 6.8 Task Status
-
-Frontend needs to poll task status.
-
-Endpoint:
+### Task Status
 
 ```text
 GET /api/tasks/{task_id}
@@ -467,6 +622,7 @@ Possible statuses:
 ```text
 queued
 processing
+converting_audio
 transcribing
 translating
 summarizing
@@ -475,19 +631,19 @@ completed
 failed
 ```
 
-Response example:
+Example response:
 
 ```json
 {
   "task_id": "...",
-  "status": "processing",
-  "progress": 40,
+  "status": "transcribing",
+  "progress": 35,
   "message": "Transcribing audio",
   "result_available": false
 }
 ```
 
-When completed:
+Completed response:
 
 ```json
 {
@@ -505,147 +661,72 @@ When completed:
 
 ---
 
-## 7. Data Retention and Cleanup
-
-This is mandatory.
-
-The server has limited free storage.  
-Do not keep user audio forever.
-
-Implement automatic cleanup.
-
-Policy for MVP:
+### Downloads
 
 ```text
-Uploaded audio: delete after 6 hours
-Processed temporary WAV: delete after 6 hours
-Generated documents: delete after 24 hours
-Task metadata: delete after 7 days or on restart if in-memory
-```
-
-Add config:
-
-```text
-UPLOAD_RETENTION_HOURS=6
-OUTPUT_RETENTION_HOURS=24
-MAX_UPLOAD_MB=300
-```
-
-Implement:
-
-- cleanup on app startup;
-- cleanup endpoint only if safe;
-- optional background cleanup loop.
-
-Never delete outside the project data directory.
-
-Be careful with paths.  
-Use safe path handling.
-
----
-
-## 8. Public Website Plan
-
-The target deployment should eventually be public.
-
-Do not implement Cloudflare Tunnel directly in app code.
-
-But create deployment notes:
-
-```text
-deploy/cloudflare-tunnel-notes.md
-```
-
-Explain that final deployment can expose local FastAPI/nginx using Cloudflare Tunnel:
-
-```text
-Internet user
-→ Cloudflare HTTPS URL
-→ Cloudflare Tunnel
-→ Ubuntu PC
-→ nginx
-→ FastAPI app
-```
-
-The app itself should simply listen on localhost or 0.0.0.0 depending on deployment.
-
-For first prototype:
-
-```text
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+GET /api/download/{task_id}/txt
+GET /api/download/{task_id}/docx
+GET /api/download/{task_id}/pdf
+GET /api/download/{task_id}/html
 ```
 
 ---
 
-## 9. UI Requirements
+## 18. Frontend Requirements
 
-Frontend must be simple but usable.
+The first UI does not need to be beautiful. It must be usable and responsive.
 
-Pages/sections:
+Required sections:
 
-1. Header:
-   - project name
-   - short description
+1. Header with project name: QazScribe.
+2. Short explanation of what it does.
+3. File upload block.
+4. Browser recording block.
+5. Processing status block.
+6. Result preview block.
+7. Download buttons for TXT, DOCX, PDF, HTML.
+8. Error display.
+9. Mobile-responsive layout.
 
-2. Upload section:
-   - file input
-   - upload button
+Important:
 
-3. Recording section:
-   - start recording
-   - stop recording
-   - upload recording
-
-4. Processing status:
-   - status text
-   - progress percentage
-   - error message if failed
-
-5. Results:
-   - detected language
-   - transcript preview
-   - Kazakh translation preview
-   - summary preview
-   - download buttons for TXT/DOCX/PDF/HTML
-
-6. Mobile responsive:
-   - usable on phone
-   - no horizontal overflow
-   - large buttons
-
-Do not waste time on premium UI.  
-The first goal is working functionality.
+- Large buttons.
+- Clear status messages.
+- No horizontal overflow on phone.
+- Works on desktop and mobile browser.
 
 ---
 
-## 10. Security and Safety Basics
+## 19. Security and Reliability Basics
 
 Implement basic protections:
 
-- limit upload size;
-- allow only expected audio/video extensions;
-- never execute uploaded file;
-- use safe filenames;
-- generate UUID task IDs;
-- do not expose raw filesystem paths;
-- do not store secrets in Git;
-- reject missing or empty files;
-- handle failed ffmpeg/ASR gracefully;
-- return clear errors to frontend.
+1. Limit upload size.
+2. Allow only expected file extensions.
+3. Generate UUID task IDs.
+4. Never execute uploaded files.
+5. Use safe filenames.
+6. Do not expose filesystem paths.
+7. Do not store secrets in Git.
+8. Reject empty files.
+9. Handle ffmpeg errors clearly.
+10. Handle Whisper errors clearly.
+11. Handle missing API key gracefully.
+12. Clean up expired files.
 
 ---
 
-## 11. Git Workflow
+## 20. Git Workflow
 
-Use Git carefully.
+Use Git consistently.
 
-Before changes:
+Before work:
 
 ```bash
 git status
 ```
 
-After meaningful changes:
+After stable changes:
 
 ```bash
 git add .
@@ -656,6 +737,7 @@ git push
 Do not commit:
 
 ```text
+.venv/
 venv/
 __pycache__/
 .env
@@ -666,218 +748,280 @@ data/processed/
 *.wav
 *.m4a
 *.webm
+*.mp4
 *.docx
 *.pdf
 ```
 
 Add these to `.gitignore`.
 
-Every stage should leave the repo runnable.
+Every milestone should leave the repo runnable.
 
 ---
 
-## 12. Development Stages
+## 21. Development Roadmap
 
-### Stage 1 — Skeleton
+This is the correct order. Do not jump ahead.
 
-Create working FastAPI backend and static frontend.
+### Stage 1 — Project Skeleton
+
+Goal:
+
+Create a runnable backend and frontend skeleton.
+
+Tasks:
+
+1. Inspect current repository.
+2. Create/adjust structure.
+3. Add FastAPI backend.
+4. Add static frontend.
+5. Add health endpoint.
+6. Add README run instructions.
+7. Add correct `.gitignore`.
 
 Acceptance:
 
 ```text
 Backend starts.
 Frontend opens.
-Health endpoint works.
-Git push done.
-```
-
-Endpoints:
-
-```text
-GET /
-GET /api/health
+GET /api/health works.
+No Whisper yet.
+Repo is pushed to GitHub.
 ```
 
 ---
 
-### Stage 2 — Upload + Task
+### Stage 2 — File Upload and Task Creation
 
-Implement upload and task status.
+Goal:
+
+Implement audio file upload before Whisper.
+
+Tasks:
+
+1. Add upload form.
+2. Add `/api/upload` endpoint.
+3. Validate file type and size.
+4. Save uploaded file under task ID.
+5. Add task status endpoint.
+6. Show status in frontend.
 
 Acceptance:
 
 ```text
 User uploads audio.
-Backend saves it under task_id.
-Task status can be queried.
-Frontend shows task_id/status.
+Backend stores it safely.
+Task ID is created.
+Frontend shows task status.
 ```
 
 ---
 
-### Stage 3 — ffmpeg Conversion
+### Stage 3 — Browser Recording
 
-Implement audio conversion.
+Goal:
+
+Allow recording from microphone.
+
+Tasks:
+
+1. Implement MediaRecorder in frontend.
+2. Add start/stop recording buttons.
+3. Upload recorded blob to backend.
+4. Reuse same upload processing path.
 
 Acceptance:
 
 ```text
-Uploaded audio is converted to mono 16kHz WAV.
-Errors are handled.
+User records audio in browser.
+Recording is uploaded.
+Task is created.
 ```
 
 ---
 
-### Stage 4 — Whisper Transcription
+### Stage 4 — Audio Conversion
 
-Implement faster-whisper service.
+Goal:
+
+Normalize audio before ASR.
+
+Tasks:
+
+1. Use ffmpeg.
+2. Convert to mono 16 kHz WAV.
+3. Store processed audio temporarily.
+4. Handle ffmpeg errors.
 
 Acceptance:
 
 ```text
-Audio gets transcribed.
-Transcript is saved.
-Detected language is shown.
-CPU mode works locally.
+Uploaded/recorded audio converts successfully.
+Errors are shown clearly if conversion fails.
 ```
 
 ---
 
-### Stage 5 — Translation + Summary
+### Stage 5 — Whisper Transcription
 
-Implement abstract translation and summary services.
+Goal:
+
+Transcribe audio using faster-whisper.
+
+Tasks:
+
+1. Add ASR service.
+2. CPU config for local development.
+3. CUDA config option for target server.
+4. Save transcript.
+5. Return detected language and transcript preview.
 
 Acceptance:
 
 ```text
-If API key is configured, translation/summary is generated.
-If no API key, fallback still produces a result and app does not crash.
+Audio becomes text.
+Detected language is saved.
+Frontend shows transcript preview.
 ```
 
 ---
 
-### Stage 6 — Document Export
+### Stage 6 — Translation and Structuring
 
-Implement TXT, DOCX, PDF, HTML outputs.
+Goal:
+
+Translate and summarize text.
+
+Tasks:
+
+1. Add translation service.
+2. Add summary service.
+3. Use external API only if configured.
+4. Provide fallback if no API key.
+5. Produce structured JSON-like result.
 
 Acceptance:
 
 ```text
-All four files are generated and downloadable.
+Kazakh translation is generated or fallback is shown.
+Summary and structured notes are generated.
+App does not crash without API key.
 ```
 
 ---
 
-### Stage 7 — Cleanup
+### Stage 7 — Document Export
 
-Implement retention cleanup.
+Goal:
+
+Generate four output formats.
+
+Tasks:
+
+1. Generate TXT.
+2. Generate DOCX.
+3. Generate PDF.
+4. Generate HTML.
+5. Add download endpoints.
+6. Add frontend download buttons.
 
 Acceptance:
 
 ```text
-Old uploads and outputs are deleted safely.
-Configurable retention exists.
+User can download TXT, DOCX, PDF, HTML.
+Each document contains transcript, translation, summary, and structured notes.
 ```
 
 ---
 
-### Stage 8 — Deployment Docs
+### Stage 8 — Cleanup System
 
-Write Ubuntu deployment instructions.
+Goal:
+
+Prevent disk from filling.
+
+Tasks:
+
+1. Add retention config.
+2. Delete expired uploads.
+3. Delete expired processed files.
+4. Delete expired outputs.
+5. Run cleanup on startup.
+6. Optional background cleanup loop.
 
 Acceptance:
 
 ```text
-README explains:
-- install dependencies,
-- create venv,
-- install Python packages,
-- install ffmpeg,
-- run app,
-- configure systemd,
-- optional nginx,
-- optional Cloudflare Tunnel.
+Old files are deleted safely.
+Cleanup never deletes outside data directory.
 ```
 
 ---
 
-## 13. Do Not Do These Yet
+### Stage 9 — Ubuntu Deployment
 
-Do not implement unless explicitly requested:
+Goal:
 
-- login system;
-- user dashboard;
-- payment;
-- permanent database;
-- admin panel;
-- multi-tenant support;
-- live streaming transcription;
-- speaker diarization;
-- complex agent UI;
-- Kubernetes;
-- Docker-only deployment;
-- advanced design system;
-- mobile app.
+Prepare target server deployment.
 
-Speaker diarization can be added later, but not now.
+Tasks:
 
----
+1. Write `deploy/install_ubuntu.sh`.
+2. Write systemd service.
+3. Write nginx config.
+4. Write Cloudflare Tunnel notes.
+5. Document GPU/CUDA config.
+6. Test on Ubuntu RTX machine after prototype works.
 
-## 14. Agent Naming for Presentation
-
-Internally, these are Python services.
-
-But in UI/documentation we can describe them as agents:
+Acceptance:
 
 ```text
-ASR Agent: converts speech to text
-Language Agent: detects language and normalizes text
-Translation Agent: converts content into Kazakh
-Summary Agent: creates short and detailed summaries
-Protocol Agent: structures meeting notes
-Document Agent: exports TXT/DOCX/PDF/HTML
-Cleanup Agent: deletes expired files
+Project can be cloned from GitHub and run on Ubuntu.
+Service can start automatically.
+Public tunnel can expose the site.
 ```
 
-Do not create unnecessary autonomous agent frameworks.  
-Simple deterministic service modules are enough.
+---
+
+## 22. What Not To Do Yet
+
+Do not implement these unless explicitly requested:
+
+```text
+login system
+admin panel
+roles and permissions
+payment system
+permanent user database
+complex React/Next.js frontend
+mobile app
+live transcription streaming
+speaker diarization
+advanced analytics
+Kubernetes
+Docker-only deployment
+large autonomous agent framework
+```
+
+These may be future improvements, but not first MVP requirements.
 
 ---
 
-## 15. Expected First Prototype Result
+## 23. README Must Include
 
-At the end of first prototype, the user should be able to:
-
-1. Run backend locally.
-2. Open website.
-3. Upload an audio file.
-4. Wait for processing.
-5. See transcript/summary.
-6. Download TXT/DOCX/PDF/HTML.
-7. Push all code to GitHub.
-8. Later clone and deploy on Ubuntu RTX machine.
-
----
-
-## 16. Commands to Include in README
-
-Local development example:
+Local development commands:
 
 ```bash
-cd ~/Projects/conference-ai-notes
-
+cd ~/Projects/QazScribe
 python3 -m venv .venv
 source .venv/bin/activate
-
 pip install -r backend/requirements.txt
-
 sudo apt update
 sudo apt install -y ffmpeg
-
 uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Then open:
+Open:
 
 ```text
 http://127.0.0.1:8000
@@ -892,33 +1036,26 @@ ffmpeg -version
 git --version
 ```
 
----
+Target Ubuntu GPU config example:
 
-## 17. Important Behavior Rules
-
-Before editing:
-
-1. Inspect the existing repository structure.
-2. Read existing README/TASK files if present.
-3. Do not overwrite unrelated files.
-4. Do not invent missing files without checking.
-5. Make minimal but complete changes.
-6. Keep code runnable after every stage.
-7. Use full file rewrites only when necessary.
-8. Explain what changed after each step.
-9. Commit/push after stable milestones if Git is configured.
-10. If something is missing, state exactly what is missing.
+```text
+ASR_DEVICE=cuda
+ASR_COMPUTE_TYPE=float16
+ASR_MODEL_SIZE=medium
+```
 
 ---
 
-## 18. Immediate First Action
+## 24. Immediate Instruction to Agent
 
-Start with repository inspection:
+Start by inspecting the repository.
+
+Run:
 
 ```bash
 pwd
 ls -la
-find . -maxdepth 3 -type f | sort | sed 's#^\./##'
+find . -maxdepth 3 -type f | sort | sed 's#^./##'
 git status
 ```
 
@@ -931,15 +1068,19 @@ Then report:
 4. Proposed first implementation step
 ```
 
-After that, implement Stage 1 skeleton.
+After inspection, implement **Stage 1 only**.
 
-Do not jump directly into advanced features before the skeleton runs.
+Do not implement Whisper yet.
+Do not implement translation yet.
+Do not implement document export yet.
+
+Stage 1 must create a clean runnable skeleton first.
 
 ---
 
-# Short Command for the Agent
+## 25. Short Command After This File
 
-After placing this file into the repository as `TASK.md`, give the agent this command:
+After this `TASK.md` is added to the repository, the developer can tell the agent:
 
 ```text
 Read TASK.md completely. First inspect the repository structure and git status. Then implement Stage 1 only: working FastAPI backend, static frontend, health endpoint, correct .gitignore, and README run instructions. Do not implement Whisper yet. Keep the project runnable and push changes to GitHub if git remote is configured.
@@ -947,28 +1088,24 @@ Read TASK.md completely. First inspect the repository structure and git status. 
 
 ---
 
-# Development Order
+## 26. Final Summary
 
-Do not ask the agent to build everything in one step. Use this order:
+QazScribe is a fast MVP public web system for converting conference speech/audio into structured Kazakh-language documents.
+
+The first prototype must focus on the correct foundation:
 
 ```text
-Stage 1: skeleton
-Stage 2: audio upload
-Stage 3: ffmpeg conversion
-Stage 4: Whisper transcription
-Stage 5: translation/summary
-Stage 6: documents
-Stage 7: cleanup
-Stage 8: Ubuntu deployment
+simple web UI
+FastAPI backend
+file upload
+browser recording
+Whisper transcription
+Kazakh translation
+structured summary
+TXT/DOCX/PDF/HTML export
+automatic cleanup
+Ubuntu RTX deployment
+public access through Cloudflare Tunnel or similar
 ```
 
----
-
-# Final Principle
-
-This is a fast MVP, not a full enterprise product.
-
-Development happens on the user's laptop.  
-GitHub is the source of truth.  
-The Ubuntu RTX machine is the deployment and GPU test target.  
-The first task is to create a stable runnable skeleton, not to overbuild the system.
+The project must stay simple, runnable, and GitHub-based. The Ubuntu RTX machine is the deployment target, not the main development environment.
