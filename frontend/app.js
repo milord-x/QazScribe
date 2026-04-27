@@ -12,6 +12,7 @@ const taskStatusEl = document.querySelector("#task-status");
 const taskProgressEl = document.querySelector("#task-progress");
 const taskMessageEl = document.querySelector("#task-message");
 const taskErrorEl = document.querySelector("#task-error");
+const progressBar = document.querySelector("#progress-bar");
 const detectedLanguageEl = document.querySelector("#detected-language");
 const transcriptPreviewEl = document.querySelector("#transcript-preview");
 const translationPreviewEl = document.querySelector("#translation-preview");
@@ -24,17 +25,42 @@ let recordedChunks = [];
 let recordedBlob = null;
 let recordingStream = null;
 
+const statusLabels = {
+  queued: "В очереди",
+  processing: "Обработка",
+  converting_audio: "Конвертация аудио",
+  transcribing: "Распознавание речи",
+  translating: "Перевод",
+  summarizing: "Резюме",
+  generating_documents: "Подготовка документов",
+  completed: "Готово",
+  failed: "Ошибка",
+  Uploading: "Загрузка",
+  Failed: "Ошибка",
+};
+
+const statusMessages = {
+  queued: "Файл принят. Задача ожидает обработки.",
+  converting_audio: "Приводим аудио к формату mono 16 kHz WAV.",
+  transcribing: "Whisper распознаёт речь.",
+  translating: "Готовим казахскую версию текста.",
+  summarizing: "Собираем краткое резюме и структуру.",
+  generating_documents: "Формируем TXT, HTML, DOCX и PDF.",
+  completed: "Готово. Документы можно скачать ниже.",
+  failed: "Обработка остановилась с ошибкой.",
+};
+
 async function loadHealth() {
   try {
     const response = await fetch("/api/health");
     if (!response.ok) {
-      throw new Error(`Health check failed with ${response.status}`);
+      throw new Error(`Проверка сервера вернула ${response.status}`);
     }
 
     const data = await response.json();
-    healthStatus.textContent = `${data.service}: ${data.status}`;
+    healthStatus.textContent = data.status === "ok" ? "Сервер работает" : data.status;
   } catch (error) {
-    healthStatus.textContent = "Backend health check failed";
+    healthStatus.textContent = "Сервер недоступен";
     healthStatus.classList.add("error");
     console.error(error);
   }
@@ -53,31 +79,33 @@ function setTaskView({
   downloads,
 }) {
   if (taskId !== undefined) {
-    taskIdEl.textContent = taskId || "No task yet";
+    taskIdEl.textContent = taskId || "Пока нет";
   }
   if (status !== undefined) {
-    taskStatusEl.textContent = status || "Idle";
+    taskStatusEl.textContent = statusLabels[status] || status || "Ожидание";
   }
   if (progress !== undefined) {
-    taskProgressEl.textContent = `${progress || 0}%`;
+    const value = progress || 0;
+    taskProgressEl.textContent = `${value}%`;
+    progressBar.style.width = `${value}%`;
   }
   if (message !== undefined) {
     taskMessageEl.textContent = message || "";
   }
   if (detectedLanguage !== undefined) {
-    detectedLanguageEl.textContent = detectedLanguage || "Not available yet";
+    detectedLanguageEl.textContent = detectedLanguage || "Пока нет";
   }
   if (transcriptPreview !== undefined) {
     transcriptPreviewEl.textContent =
-      transcriptPreview || "Transcript will appear after Whisper processing.";
+      transcriptPreview || "Текст появится после обработки Whisper.";
   }
   if (translationPreview !== undefined) {
     translationPreviewEl.textContent =
-      translationPreview || "Translation will appear after processing.";
+      translationPreview || "Перевод появится после обработки.";
   }
   if (summaryPreview !== undefined) {
     summaryPreviewEl.textContent =
-      summaryPreview || "Summary will appear after processing.";
+      summaryPreview || "Резюме появится после обработки.";
   }
   if (downloads !== undefined) {
     renderDownloads(downloads);
@@ -98,7 +126,7 @@ function renderDownloads(downloads) {
   if (!downloads || Object.keys(downloads).length === 0) {
     const placeholder = document.createElement("span");
     placeholder.className = "muted";
-    placeholder.textContent = "Documents will appear after processing.";
+    placeholder.textContent = "Документы появятся после завершения обработки.";
     downloadLinksEl.appendChild(placeholder);
     return;
   }
@@ -128,7 +156,7 @@ function renderDownloads(downloads) {
 async function loadTask(taskId) {
   const response = await fetch(`/api/tasks/${taskId}`);
   if (!response.ok) {
-    throw new Error(`Task status failed with ${response.status}`);
+    throw new Error(`Не удалось получить статус задачи: ${response.status}`);
   }
 
   const task = await response.json();
@@ -136,7 +164,7 @@ async function loadTask(taskId) {
     taskId: task.task_id,
     status: task.status,
     progress: task.progress,
-    message: task.message,
+    message: statusMessages[task.status] || task.message,
     error: task.error,
     detectedLanguage: task.detected_language,
     transcriptPreview: task.transcript_preview,
@@ -191,21 +219,21 @@ async function uploadFile(file, button, uploadMessage) {
 
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.detail || `Upload failed with ${response.status}`);
+      throw new Error(data.detail || `Загрузка не прошла: ${response.status}`);
     }
 
     setTaskView({
       taskId: data.task_id,
       status: data.status,
       progress: 0,
-      message: "Upload complete. Task created.",
+      message: "Файл принят. Обработка началась.",
       error: "",
     });
     startPolling(data.task_id);
   } catch (error) {
     setTaskView({
       status: "Failed",
-      message: "Upload failed.",
+      message: "Загрузка не прошла.",
       error: error.message,
     });
   } finally {
@@ -218,11 +246,11 @@ async function uploadAudio(event) {
 
   const file = audioFileInput.files[0];
   if (!file) {
-    setTaskView({ error: "Choose an audio file first." });
+    setTaskView({ error: "Сначала выберите аудио или видеофайл." });
     return;
   }
 
-  await uploadFile(file, uploadButton, "Uploading audio file...");
+  await uploadFile(file, uploadButton, "Загружаю файл на сервер...");
 }
 
 function setRecordingState(state, message) {
@@ -253,7 +281,7 @@ function getRecorderOptions() {
 
 async function startRecording() {
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-    setRecordingState("unsupported", "Browser recording is not supported here.");
+    setRecordingState("unsupported", "Браузер не поддерживает запись с микрофона.");
     return;
   }
 
@@ -283,13 +311,13 @@ async function startRecording() {
       recordingStream = null;
       mediaRecorder = null;
 
-      setRecordingState("ready", "Recording ready for upload.");
+      setRecordingState("ready", "Запись готова к загрузке.");
     });
 
     mediaRecorder.start();
-    setRecordingState("recording", "Recording...");
+    setRecordingState("recording", "Идёт запись. Говорите в микрофон.");
   } catch (error) {
-    setRecordingState("idle", "Microphone access failed.");
+    setRecordingState("idle", "Не удалось получить доступ к микрофону.");
     setTaskView({ error: error.message });
   }
 }
@@ -297,13 +325,13 @@ async function startRecording() {
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== "inactive") {
     mediaRecorder.stop();
-    setRecordingState("stopping", "Stopping recording...");
+    setRecordingState("stopping", "Останавливаю запись...");
   }
 }
 
 async function uploadRecording() {
   if (!recordedBlob) {
-    setTaskView({ error: "Record audio before uploading." });
+    setTaskView({ error: "Сначала запишите аудио." });
     return;
   }
 
@@ -312,9 +340,9 @@ async function uploadRecording() {
     type: recordedBlob.type || "audio/webm",
   });
 
-  setRecordingState("uploading", "Uploading recording...");
-  await uploadFile(file, recordUploadButton, "Uploading browser recording...");
-  setRecordingState("ready", "Recording uploaded. You can upload it again or record a new one.");
+  setRecordingState("uploading", "Загружаю запись...");
+  await uploadFile(file, recordUploadButton, "Загружаю запись с микрофона...");
+  setRecordingState("ready", "Запись загружена. Можно записать заново или отправить ещё раз.");
 }
 
 uploadForm.addEventListener("submit", uploadAudio);
@@ -323,7 +351,7 @@ recordStopButton.addEventListener("click", stopRecording);
 recordUploadButton.addEventListener("click", uploadRecording);
 
 if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-  setRecordingState("unsupported", "Browser recording is not supported here.");
+  setRecordingState("unsupported", "Браузер не поддерживает запись с микрофона.");
 }
 
 loadHealth();

@@ -63,11 +63,11 @@ def _fallback_notes(
 ) -> StructuredNotes:
     source_text = kazakh_translation.strip() or transcript.strip()
     sentences = _split_sentences(source_text)
-    short_summary = " ".join(sentences[:3]) if sentences else "No speech content was detected."
+    short_summary = " ".join(sentences[:3]) if sentences else "Речь не обнаружена."
     key_points = sentences[:5] if sentences else []
 
     return StructuredNotes(
-        title="QazScribe meeting notes",
+        title="QazScribe: протокол встречи",
         short_summary=short_summary,
         detailed_summary=short_summary,
         key_points=key_points,
@@ -76,8 +76,8 @@ def _fallback_notes(
         participants_or_speakers=[],
         risks_or_open_questions=[],
         final_notes=(
-            "Structured notes were generated in fallback mode. Configure an LLM "
-            "provider for better Kazakh summaries, decisions, and action items."
+            "Структура подготовлена в fallback-режиме. Для качественного казахского "
+            "резюме, решений и задач подключите LLM-провайдер."
         ),
         provider="fallback",
         fallback_used=True,
@@ -143,7 +143,7 @@ def _notes_from_provider(
     parsed = json.loads(content)
 
     return StructuredNotes(
-        title=str(parsed.get("title") or "QazScribe meeting notes"),
+        title=str(parsed.get("title") or "QazScribe: протокол встречи"),
         short_summary=str(parsed.get("short_summary") or ""),
         detailed_summary=str(parsed.get("detailed_summary") or ""),
         key_points=_as_text_list(parsed.get("key_points")),

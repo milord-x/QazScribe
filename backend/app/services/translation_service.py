@@ -66,14 +66,14 @@ def _chat_completion(settings: Settings, system_prompt: str, user_prompt: str) -
 def _fallback_translation(text: str, error: str | None = None) -> TranslationResult:
     if text.strip():
         translated_text = (
-            "Kazakh translation is unavailable because no working LLM provider is "
-            "configured. Original transcript is shown below.\n\n"
+            "Перевод на казахский сейчас недоступен: внешний LLM-провайдер "
+            "не настроен или не отвечает. Ниже показан исходный transcript.\n\n"
             f"{text.strip()}"
         )
     else:
         translated_text = (
-            "Kazakh translation is unavailable because the transcript is empty or "
-            "no speech was detected."
+            "Перевод на казахский сейчас недоступен, потому что transcript пустой "
+            "или речь не была обнаружена."
         )
 
     return TranslationResult(

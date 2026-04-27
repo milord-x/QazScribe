@@ -1,96 +1,139 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>QazScribe Conference AI Notes</title>
+    <title>QazScribe</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <main class="page-shell">
       <header class="header">
-        <p class="eyebrow">Conference AI Notes</p>
+        <p class="eyebrow">Протоколы конференций и заседаний</p>
         <h1>QazScribe</h1>
         <p>
-          Upload or record conference audio, then generate Kazakh transcripts,
-          summaries, structured notes, and exportable documents.
+          Загрузите запись или запишите речь в браузере. Сервис распознает аудио,
+          подготовит текст, казахскую версию, краткое резюме и документы для скачивания.
         </p>
       </header>
 
-      <section class="panel" aria-labelledby="upload-title">
-        <h2 id="upload-title">Audio upload</h2>
+      <section class="process-strip" aria-label="Порядок обработки">
+        <div>
+          <span>1</span>
+          <strong>Аудио</strong>
+          <p>файл или запись</p>
+        </div>
+        <div>
+          <span>2</span>
+          <strong>Распознавание</strong>
+          <p>Whisper transcript</p>
+        </div>
+        <div>
+          <span>3</span>
+          <strong>Казахский текст</strong>
+          <p>перевод и резюме</p>
+        </div>
+        <div>
+          <span>4</span>
+          <strong>Документы</strong>
+          <p>TXT, HTML, DOCX, PDF</p>
+        </div>
+      </section>
+
+      <section class="panel input-panel" aria-labelledby="upload-title">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Вариант 1</p>
+            <h2 id="upload-title">Загрузить готовую запись</h2>
+          </div>
+          <span class="small-note">до 300 MB</span>
+        </div>
         <form class="upload-form" id="upload-form">
-          <label for="audio-file">Audio file</label>
+          <label for="audio-file">Аудиофайл или видеофайл с речью</label>
           <input
             id="audio-file"
             name="file"
             type="file"
             accept=".mp3,.wav,.m4a,.ogg,.webm,.mp4,audio/*,video/mp4"
           />
-          <button type="submit" id="upload-button">Upload audio</button>
+          <button type="submit" id="upload-button">Отправить на обработку</button>
         </form>
-        <p class="muted">Supported formats: mp3, wav, m4a, ogg, webm, mp4.</p>
+        <p class="muted">Поддерживаются: mp3, wav, m4a, ogg, webm, mp4.</p>
       </section>
 
-      <section class="panel" aria-labelledby="record-title">
-        <h2 id="record-title">Browser recording</h2>
-        <div class="button-row">
-          <button type="button" id="record-start">Start recording</button>
-          <button type="button" id="record-stop" disabled>Stop recording</button>
-          <button type="button" id="record-upload" disabled>Upload recording</button>
+      <section class="panel input-panel" aria-labelledby="record-title">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Вариант 2</p>
+            <h2 id="record-title">Записать речь здесь</h2>
+          </div>
+          <span class="small-note">микрофон браузера</span>
         </div>
-        <p id="record-status" class="muted">No recording yet.</p>
+        <div class="button-row">
+          <button type="button" id="record-start">Начать запись</button>
+          <button type="button" id="record-stop" disabled>Остановить</button>
+          <button type="button" id="record-upload" disabled>Загрузить запись</button>
+        </div>
+        <p id="record-status" class="muted">Запись ещё не начата.</p>
         <audio id="record-preview" controls hidden></audio>
       </section>
 
-      <section class="panel" aria-labelledby="status-title">
-        <h2 id="status-title">System status</h2>
-        <p id="health-status">Checking backend health...</p>
-      </section>
-
-      <section class="panel" aria-labelledby="task-title">
-        <h2 id="task-title">Processing status</h2>
-        <div class="status-grid">
+      <section class="panel status-panel" aria-labelledby="status-title">
+        <div class="panel-heading">
           <div>
-            <span class="status-label">Task ID</span>
-            <strong id="task-id">No task yet</strong>
+            <p class="section-kicker">Состояние</p>
+            <h2 id="status-title">Сервер и задача</h2>
           </div>
-          <div>
-            <span class="status-label">Status</span>
-            <strong id="task-status">Idle</strong>
-          </div>
-          <div>
-            <span class="status-label">Progress</span>
-            <strong id="task-progress">0%</strong>
-          </div>
+          <p id="health-status" class="health-pill">Проверяю сервер...</p>
         </div>
-        <p id="task-message" class="muted">Upload an audio file to create a task.</p>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progress-bar"></div>
+        </div>
+        <p id="task-message" class="muted">Загрузите файл или запись, чтобы создать задачу.</p>
         <p id="task-error" class="error" hidden></p>
       </section>
 
+      <section class="panel" aria-labelledby="task-title">
+        <h2 id="task-title">Детали обработки</h2>
+        <div class="status-grid">
+          <div>
+            <span class="status-label">Номер задачи</span>
+            <strong id="task-id">Пока нет</strong>
+          </div>
+          <div>
+            <span class="status-label">Этап</span>
+            <strong id="task-status">Ожидание</strong>
+          </div>
+          <div>
+            <span class="status-label">Готовность</span>
+            <strong id="task-progress">0%</strong>
+          </div>
+        </div>
+      </section>
+
       <section class="panel" aria-labelledby="result-title">
-        <h2 id="result-title">Transcript preview</h2>
+        <h2 id="result-title">Распознанный текст</h2>
         <p>
-          <span class="status-label">Detected language</span>
-          <strong id="detected-language">Not available yet</strong>
+          <span class="status-label">Определённый язык</span>
+          <strong id="detected-language">Пока нет</strong>
         </p>
-        <pre id="transcript-preview">Transcript will appear after Whisper processing.</pre>
+        <pre id="transcript-preview">Текст появится после обработки Whisper.</pre>
       </section>
 
       <section class="panel" aria-labelledby="translation-title">
-        <h2 id="translation-title">Kazakh translation preview</h2>
-        <pre id="translation-preview">Translation will appear after processing.</pre>
+        <h2 id="translation-title">Казахская версия</h2>
+        <pre id="translation-preview">Перевод появится после обработки.</pre>
       </section>
 
       <section class="panel" aria-labelledby="summary-title">
-        <h2 id="summary-title">Structured summary preview</h2>
-        <pre id="summary-preview">Summary will appear after processing.</pre>
+        <h2 id="summary-title">Краткое резюме и структура</h2>
+        <pre id="summary-preview">Резюме появится после обработки.</pre>
       </section>
 
       <section class="panel" aria-labelledby="downloads-title">
-        <h2 id="downloads-title">Downloads</h2>
+        <h2 id="downloads-title">Скачать результат</h2>
         <div class="download-row" id="download-links">
-          <span class="muted">Documents will appear after processing.</span>
+          <span class="muted">Документы появятся после завершения обработки.</span>
         </div>
       </section>
     </main>
