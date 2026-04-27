@@ -26,5 +26,6 @@ Implemented:
 - ffmpeg conversion to mono 16 kHz WAV
 - faster-whisper transcription with CPU/CUDA configuration
 - Kazakh translation and structured notes with fallback mode
+- TXT, HTML, DOCX, and PDF document export
 
-Exports and cleanup are planned for later stages.
+Cleanup is planned for later stages.

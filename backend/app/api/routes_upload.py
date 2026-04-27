@@ -9,6 +9,7 @@ from backend.app.config import get_settings
 from backend.app.schemas.tasks import UploadResponse
 from backend.app.services.asr_service import ASRError, transcribe_audio
 from backend.app.services.audio_service import AudioConversionError, convert_to_wav_16khz_mono
+from backend.app.services.document_service import DocumentGenerationError, generate_documents
 from backend.app.services.summary_service import generate_structured_notes
 from backend.app.services.translation_service import translate_to_kazakh
 from backend.app.storage.task_store import create_task, update_task
@@ -95,12 +96,33 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
 
         update_task(
             task_id,
-            status="completed",
-            progress=100,
-            message="Translation and structured notes completed. Document export will be added in Stage 7.",
+            status="generating_documents",
+            progress=94,
+            message="Generating TXT, HTML, DOCX, and PDF documents",
             result_available=True,
             summary_path=str(summary_path.relative_to(settings.project_root)),
             summary_preview=notes.short_summary[:1200],
+            error="",
+        )
+        document_paths = generate_documents(
+            task_id,
+            settings.outputs_path / task_id,
+            transcription.detected_language,
+            transcription.to_dict(),
+            translation.to_dict(),
+            notes.to_dict(),
+        )
+        downloads = {
+            file_format: f"/api/download/{task_id}/{file_format}"
+            for file_format in document_paths
+        }
+        update_task(
+            task_id,
+            status="completed",
+            progress=100,
+            message="Processing completed. Documents are ready for download.",
+            result_available=True,
+            downloads=downloads,
             error="",
         )
     except AudioConversionError as exc:
@@ -117,6 +139,14 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             status="failed",
             progress=100,
             message="Whisper transcription failed",
+            error=str(exc),
+        )
+    except DocumentGenerationError as exc:
+        update_task(
+            task_id,
+            status="failed",
+            progress=100,
+            message="Document generation failed",
             error=str(exc),
         )
     except Exception as exc:

@@ -58,6 +58,15 @@ Task status endpoint:
 GET http://127.0.0.1:8000/api/tasks/{task_id}
 ```
 
+Download endpoints:
+
+```text
+GET http://127.0.0.1:8000/api/download/{task_id}/txt
+GET http://127.0.0.1:8000/api/download/{task_id}/html
+GET http://127.0.0.1:8000/api/download/{task_id}/docx
+GET http://127.0.0.1:8000/api/download/{task_id}/pdf
+```
+
 For the first local Whisper test, use a small model setting:
 
 ```bash
@@ -97,4 +106,4 @@ ffmpeg -version
 git --version
 ```
 
-Later stages will add document exports, cleanup, and Ubuntu deployment files.
+Later stages will add cleanup and Ubuntu deployment files.

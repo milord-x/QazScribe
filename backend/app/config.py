@@ -50,6 +50,10 @@ class Settings(BaseSettings):
         return self.data_path / "processed"
 
     @property
+    def outputs_path(self) -> Path:
+        return self.data_path / "outputs"
+
+    @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_mb * 1024 * 1024
 

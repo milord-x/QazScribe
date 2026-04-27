@@ -16,6 +16,7 @@ const detectedLanguageEl = document.querySelector("#detected-language");
 const transcriptPreviewEl = document.querySelector("#transcript-preview");
 const translationPreviewEl = document.querySelector("#translation-preview");
 const summaryPreviewEl = document.querySelector("#summary-preview");
+const downloadLinksEl = document.querySelector("#download-links");
 
 let pollTimer = null;
 let mediaRecorder = null;
@@ -49,6 +50,7 @@ function setTaskView({
   transcriptPreview,
   translationPreview,
   summaryPreview,
+  downloads,
 }) {
   if (taskId !== undefined) {
     taskIdEl.textContent = taskId || "No task yet";
@@ -77,6 +79,9 @@ function setTaskView({
     summaryPreviewEl.textContent =
       summaryPreview || "Summary will appear after processing.";
   }
+  if (downloads !== undefined) {
+    renderDownloads(downloads);
+  }
 
   if (error) {
     taskErrorEl.textContent = error;
@@ -85,6 +90,39 @@ function setTaskView({
     taskErrorEl.textContent = "";
     taskErrorEl.hidden = true;
   }
+}
+
+function renderDownloads(downloads) {
+  downloadLinksEl.innerHTML = "";
+
+  if (!downloads || Object.keys(downloads).length === 0) {
+    const placeholder = document.createElement("span");
+    placeholder.className = "muted";
+    placeholder.textContent = "Documents will appear after processing.";
+    downloadLinksEl.appendChild(placeholder);
+    return;
+  }
+
+  const labels = {
+    txt: "TXT",
+    html: "HTML",
+    docx: "DOCX",
+    pdf: "PDF",
+  };
+
+  Object.entries(labels).forEach(([format, label]) => {
+    if (!downloads[format]) {
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.className = "download-link";
+    link.href = downloads[format];
+    link.textContent = label;
+    link.target = "_blank";
+    link.rel = "noopener";
+    downloadLinksEl.appendChild(link);
+  });
 }
 
 async function loadTask(taskId) {
@@ -104,6 +142,7 @@ async function loadTask(taskId) {
     transcriptPreview: task.transcript_preview,
     translationPreview: task.translation_preview,
     summaryPreview: task.summary_preview,
+    downloads: task.downloads,
   });
 
   if (task.status === "completed" || task.status === "failed") {
@@ -141,6 +180,7 @@ async function uploadFile(file, button, uploadMessage) {
     progress: 0,
     message: uploadMessage,
     error: "",
+    downloads: null,
   });
 
   try {
