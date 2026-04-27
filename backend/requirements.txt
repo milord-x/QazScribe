@@ -3,3 +3,4 @@ uvicorn[standard]==0.34.0
 python-dotenv==1.0.1
 pydantic-settings==2.7.1
 python-multipart==0.0.20
+faster-whisper==1.2.1

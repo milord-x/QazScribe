@@ -23,6 +23,8 @@ class TaskResponse(BaseModel):
     message: str
     result_available: bool = False
     filename: str | None = None
+    detected_language: str | None = None
+    transcript_preview: str | None = None
     error: str | None = None
     downloads: dict[str, str] | None = None
 

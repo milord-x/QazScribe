@@ -24,5 +24,6 @@ Implemented:
 - static frontend serving from `frontend/`
 - browser recording upload through the same upload endpoint
 - ffmpeg conversion to mono 16 kHz WAV
+- faster-whisper transcription with CPU/CUDA configuration
 
-ASR, translation, summaries, exports, and cleanup are planned for later stages.
+Translation, summaries, exports, and cleanup are planned for later stages.

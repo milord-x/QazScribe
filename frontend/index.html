@@ -67,6 +67,15 @@
         <p id="task-message" class="muted">Upload an audio file to create a task.</p>
         <p id="task-error" class="error" hidden></p>
       </section>
+
+      <section class="panel" aria-labelledby="result-title">
+        <h2 id="result-title">Transcript preview</h2>
+        <p>
+          <span class="status-label">Detected language</span>
+          <strong id="detected-language">Not available yet</strong>
+        </p>
+        <pre id="transcript-preview">Transcript will appear after Whisper processing.</pre>
+      </section>
     </main>
 
     <script src="/static/app.js"></script>

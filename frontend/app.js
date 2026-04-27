@@ -12,6 +12,8 @@ const taskStatusEl = document.querySelector("#task-status");
 const taskProgressEl = document.querySelector("#task-progress");
 const taskMessageEl = document.querySelector("#task-message");
 const taskErrorEl = document.querySelector("#task-error");
+const detectedLanguageEl = document.querySelector("#detected-language");
+const transcriptPreviewEl = document.querySelector("#transcript-preview");
 
 let pollTimer = null;
 let mediaRecorder = null;
@@ -35,7 +37,15 @@ async function loadHealth() {
   }
 }
 
-function setTaskView({ taskId, status, progress, message, error }) {
+function setTaskView({
+  taskId,
+  status,
+  progress,
+  message,
+  error,
+  detectedLanguage,
+  transcriptPreview,
+}) {
   if (taskId !== undefined) {
     taskIdEl.textContent = taskId || "No task yet";
   }
@@ -47,6 +57,13 @@ function setTaskView({ taskId, status, progress, message, error }) {
   }
   if (message !== undefined) {
     taskMessageEl.textContent = message || "";
+  }
+  if (detectedLanguage !== undefined) {
+    detectedLanguageEl.textContent = detectedLanguage || "Not available yet";
+  }
+  if (transcriptPreview !== undefined) {
+    transcriptPreviewEl.textContent =
+      transcriptPreview || "Transcript will appear after Whisper processing.";
   }
 
   if (error) {
@@ -71,6 +88,8 @@ async function loadTask(taskId) {
     progress: task.progress,
     message: task.message,
     error: task.error,
+    detectedLanguage: task.detected_language,
+    transcriptPreview: task.transcript_preview,
   });
 
   if (task.status === "completed" || task.status === "failed") {

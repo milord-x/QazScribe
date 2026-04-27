@@ -19,6 +19,9 @@ def create_task(task_id: str, filename: str, stored_path: str) -> dict[str, Any]
         "filename": filename,
         "stored_path": stored_path,
         "processed_path": None,
+        "transcript_path": None,
+        "detected_language": None,
+        "transcript_preview": None,
         "error": None,
         "downloads": None,
         "created_at": datetime.now(UTC).isoformat(),
@@ -47,6 +50,9 @@ def update_task(
     error: str | None = None,
     downloads: dict[str, str] | None = None,
     processed_path: str | None = None,
+    transcript_path: str | None = None,
+    detected_language: str | None = None,
+    transcript_preview: str | None = None,
 ) -> dict[str, Any] | None:
     with _lock:
         task = _tasks.get(task_id)
@@ -67,6 +73,12 @@ def update_task(
             task["downloads"] = downloads
         if processed_path is not None:
             task["processed_path"] = processed_path
+        if transcript_path is not None:
+            task["transcript_path"] = transcript_path
+        if detected_language is not None:
+            task["detected_language"] = detected_language
+        if transcript_preview is not None:
+            task["transcript_preview"] = transcript_preview
 
         task["updated_at"] = datetime.now(UTC).isoformat()
         return task.copy()

@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import re
 from uuid import uuid4
 
@@ -6,6 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile,
 
 from backend.app.config import get_settings
 from backend.app.schemas.tasks import UploadResponse
+from backend.app.services.asr_service import ASRError, transcribe_audio
 from backend.app.services.audio_service import AudioConversionError, convert_to_wav_16khz_mono
 from backend.app.storage.task_store import create_task, update_task
 
@@ -27,6 +29,7 @@ def _safe_filename(filename: str) -> str:
 
 def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
     output_path = settings.processed_path / task_id / "audio_16khz_mono.wav"
+    transcript_path = settings.processed_path / task_id / "transcript.json"
 
     try:
         update_task(
@@ -39,11 +42,26 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
         converted_path = convert_to_wav_16khz_mono(source_path, output_path)
         update_task(
             task_id,
+            status="transcribing",
+            progress=55,
+            message="Transcribing audio with Whisper",
+            processed_path=str(converted_path.relative_to(settings.project_root)),
+            error="",
+        )
+        transcription = transcribe_audio(converted_path, settings)
+        transcript_path.write_text(
+            json.dumps(transcription.to_dict(), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        update_task(
+            task_id,
             status="completed",
             progress=100,
-            message="Audio conversion completed. Transcription will be added in Stage 5.",
-            result_available=False,
-            processed_path=str(converted_path.relative_to(settings.project_root)),
+            message="Transcription completed. Translation will be added in Stage 6.",
+            result_available=True,
+            transcript_path=str(transcript_path.relative_to(settings.project_root)),
+            detected_language=transcription.detected_language,
+            transcript_preview=transcription.full_transcript[:1200],
             error="",
         )
     except AudioConversionError as exc:
@@ -52,6 +70,14 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             status="failed",
             progress=100,
             message="Audio conversion failed",
+            error=str(exc),
+        )
+    except ASRError as exc:
+        update_task(
+            task_id,
+            status="failed",
+            progress=100,
+            message="Whisper transcription failed",
             error=str(exc),
         )
     except Exception as exc:

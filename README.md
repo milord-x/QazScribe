@@ -58,6 +58,13 @@ Task status endpoint:
 GET http://127.0.0.1:8000/api/tasks/{task_id}
 ```
 
+For the first local Whisper test, use a small model setting:
+
+```bash
+ASR_MODEL_SIZE=tiny ASR_DEVICE=cpu ASR_COMPUTE_TYPE=int8 \
+uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
 ## Configuration
 
 Copy the example environment file if local overrides are needed:
@@ -79,4 +86,4 @@ ffmpeg -version
 git --version
 ```
 
-Later stages will add faster-whisper transcription, Kazakh translation, document exports, cleanup, and Ubuntu deployment files.
+Later stages will add Kazakh translation, document exports, cleanup, and Ubuntu deployment files.
