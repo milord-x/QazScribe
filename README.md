@@ -28,6 +28,9 @@ source .venv/bin/activate
 
 pip install -r backend/requirements.txt
 
+# Required for audio conversion
+sudo apt install -y ffmpeg
+
 uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -76,4 +79,4 @@ ffmpeg -version
 git --version
 ```
 
-Later stages will add ffmpeg conversion, faster-whisper transcription, Kazakh translation, document exports, cleanup, and Ubuntu deployment files.
+Later stages will add faster-whisper transcription, Kazakh translation, document exports, cleanup, and Ubuntu deployment files.

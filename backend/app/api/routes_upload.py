@@ -2,11 +2,12 @@ from pathlib import Path
 import re
 from uuid import uuid4
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile, status
 
 from backend.app.config import get_settings
 from backend.app.schemas.tasks import UploadResponse
-from backend.app.storage.task_store import create_task
+from backend.app.services.audio_service import AudioConversionError, convert_to_wav_16khz_mono
+from backend.app.storage.task_store import create_task, update_task
 
 
 router = APIRouter(prefix="/api", tags=["upload"])
@@ -24,8 +25,50 @@ def _safe_filename(filename: str) -> str:
     return f"{safe_stem or 'audio'}{suffix}"
 
 
+def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
+    output_path = settings.processed_path / task_id / "audio_16khz_mono.wav"
+
+    try:
+        update_task(
+            task_id,
+            status="converting_audio",
+            progress=20,
+            message="Converting audio to mono 16 kHz WAV",
+            error="",
+        )
+        converted_path = convert_to_wav_16khz_mono(source_path, output_path)
+        update_task(
+            task_id,
+            status="completed",
+            progress=100,
+            message="Audio conversion completed. Transcription will be added in Stage 5.",
+            result_available=False,
+            processed_path=str(converted_path.relative_to(settings.project_root)),
+            error="",
+        )
+    except AudioConversionError as exc:
+        update_task(
+            task_id,
+            status="failed",
+            progress=100,
+            message="Audio conversion failed",
+            error=str(exc),
+        )
+    except Exception as exc:
+        update_task(
+            task_id,
+            status="failed",
+            progress=100,
+            message="Unexpected audio processing failure",
+            error=str(exc),
+        )
+
+
 @router.post("/upload", response_model=UploadResponse)
-async def upload_audio(file: UploadFile = File(...)) -> UploadResponse:
+async def upload_audio(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+) -> UploadResponse:
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -73,4 +116,5 @@ async def upload_audio(file: UploadFile = File(...)) -> UploadResponse:
         )
 
     create_task(task_id, safe_name, str(destination.relative_to(settings.project_root)))
+    background_tasks.add_task(_process_uploaded_audio, task_id, destination)
     return UploadResponse(task_id=task_id, status="queued")
