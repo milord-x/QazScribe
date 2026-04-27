@@ -25,5 +25,6 @@ Implemented:
 - browser recording upload through the same upload endpoint
 - ffmpeg conversion to mono 16 kHz WAV
 - faster-whisper transcription with CPU/CUDA configuration
+- Kazakh translation and structured notes with fallback mode
 
-Translation, summaries, exports, and cleanup are planned for later stages.
+Exports and cleanup are planned for later stages.

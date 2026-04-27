@@ -14,6 +14,8 @@ const taskMessageEl = document.querySelector("#task-message");
 const taskErrorEl = document.querySelector("#task-error");
 const detectedLanguageEl = document.querySelector("#detected-language");
 const transcriptPreviewEl = document.querySelector("#transcript-preview");
+const translationPreviewEl = document.querySelector("#translation-preview");
+const summaryPreviewEl = document.querySelector("#summary-preview");
 
 let pollTimer = null;
 let mediaRecorder = null;
@@ -45,6 +47,8 @@ function setTaskView({
   error,
   detectedLanguage,
   transcriptPreview,
+  translationPreview,
+  summaryPreview,
 }) {
   if (taskId !== undefined) {
     taskIdEl.textContent = taskId || "No task yet";
@@ -64,6 +68,14 @@ function setTaskView({
   if (transcriptPreview !== undefined) {
     transcriptPreviewEl.textContent =
       transcriptPreview || "Transcript will appear after Whisper processing.";
+  }
+  if (translationPreview !== undefined) {
+    translationPreviewEl.textContent =
+      translationPreview || "Translation will appear after processing.";
+  }
+  if (summaryPreview !== undefined) {
+    summaryPreviewEl.textContent =
+      summaryPreview || "Summary will appear after processing.";
   }
 
   if (error) {
@@ -90,6 +102,8 @@ async function loadTask(taskId) {
     error: task.error,
     detectedLanguage: task.detected_language,
     transcriptPreview: task.transcript_preview,
+    translationPreview: task.translation_preview,
+    summaryPreview: task.summary_preview,
   });
 
   if (task.status === "completed" || task.status === "failed") {

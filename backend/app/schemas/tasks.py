@@ -25,6 +25,8 @@ class TaskResponse(BaseModel):
     filename: str | None = None
     detected_language: str | None = None
     transcript_preview: str | None = None
+    translation_preview: str | None = None
+    summary_preview: str | None = None
     error: str | None = None
     downloads: dict[str, str] | None = None
 

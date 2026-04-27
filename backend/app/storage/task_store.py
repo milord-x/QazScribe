@@ -20,8 +20,12 @@ def create_task(task_id: str, filename: str, stored_path: str) -> dict[str, Any]
         "stored_path": stored_path,
         "processed_path": None,
         "transcript_path": None,
+        "translation_path": None,
+        "summary_path": None,
         "detected_language": None,
         "transcript_preview": None,
+        "translation_preview": None,
+        "summary_preview": None,
         "error": None,
         "downloads": None,
         "created_at": datetime.now(UTC).isoformat(),
@@ -51,8 +55,12 @@ def update_task(
     downloads: dict[str, str] | None = None,
     processed_path: str | None = None,
     transcript_path: str | None = None,
+    translation_path: str | None = None,
+    summary_path: str | None = None,
     detected_language: str | None = None,
     transcript_preview: str | None = None,
+    translation_preview: str | None = None,
+    summary_preview: str | None = None,
 ) -> dict[str, Any] | None:
     with _lock:
         task = _tasks.get(task_id)
@@ -75,10 +83,18 @@ def update_task(
             task["processed_path"] = processed_path
         if transcript_path is not None:
             task["transcript_path"] = transcript_path
+        if translation_path is not None:
+            task["translation_path"] = translation_path
+        if summary_path is not None:
+            task["summary_path"] = summary_path
         if detected_language is not None:
             task["detected_language"] = detected_language
         if transcript_preview is not None:
             task["transcript_preview"] = transcript_preview
+        if translation_preview is not None:
+            task["translation_preview"] = translation_preview
+        if summary_preview is not None:
+            task["summary_preview"] = summary_preview
 
         task["updated_at"] = datetime.now(UTC).isoformat()
         return task.copy()

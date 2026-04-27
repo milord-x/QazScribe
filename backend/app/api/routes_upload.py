@@ -9,6 +9,8 @@ from backend.app.config import get_settings
 from backend.app.schemas.tasks import UploadResponse
 from backend.app.services.asr_service import ASRError, transcribe_audio
 from backend.app.services.audio_service import AudioConversionError, convert_to_wav_16khz_mono
+from backend.app.services.summary_service import generate_structured_notes
+from backend.app.services.translation_service import translate_to_kazakh
 from backend.app.storage.task_store import create_task, update_task
 
 
@@ -30,6 +32,8 @@ def _safe_filename(filename: str) -> str:
 def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
     output_path = settings.processed_path / task_id / "audio_16khz_mono.wav"
     transcript_path = settings.processed_path / task_id / "transcript.json"
+    translation_path = settings.processed_path / task_id / "translation.json"
+    summary_path = settings.processed_path / task_id / "summary.json"
 
     try:
         update_task(
@@ -55,13 +59,48 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
         )
         update_task(
             task_id,
-            status="completed",
-            progress=100,
-            message="Transcription completed. Translation will be added in Stage 6.",
-            result_available=True,
+            status="translating",
+            progress=72,
+            message="Translating transcript to Kazakh",
             transcript_path=str(transcript_path.relative_to(settings.project_root)),
             detected_language=transcription.detected_language,
             transcript_preview=transcription.full_transcript[:1200],
+            error="",
+        )
+        translation = translate_to_kazakh(transcription.full_transcript, settings)
+        translation_path.write_text(
+            json.dumps(translation.to_dict(), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        update_task(
+            task_id,
+            status="summarizing",
+            progress=86,
+            message="Generating structured meeting notes",
+            translation_path=str(translation_path.relative_to(settings.project_root)),
+            translation_preview=translation.translated_text[:1200],
+            error="",
+        )
+        notes = generate_structured_notes(
+            transcription.full_transcript,
+            translation.translated_text,
+            transcription.detected_language,
+            settings,
+        )
+        summary_path.write_text(
+            json.dumps(notes.to_dict(), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        update_task(
+            task_id,
+            status="completed",
+            progress=100,
+            message="Translation and structured notes completed. Document export will be added in Stage 7.",
+            result_available=True,
+            summary_path=str(summary_path.relative_to(settings.project_root)),
+            summary_preview=notes.short_summary[:1200],
             error="",
         )
     except AudioConversionError as exc:
