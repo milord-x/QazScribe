@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QazScribe Conference AI Notes</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="header">
+        <p class="eyebrow">Conference AI Notes</p>
+        <h1>QazScribe</h1>
+        <p>
+          Upload or record conference audio, then generate Kazakh transcripts,
+          summaries, structured notes, and exportable documents.
+        </p>
+      </header>
+
+      <section class="panel" aria-labelledby="upload-title">
+        <h2 id="upload-title">Audio upload</h2>
+        <form class="upload-form">
+          <label for="audio-file">Audio file</label>
+          <input
+            id="audio-file"
+            name="audio-file"
+            type="file"
+            accept=".mp3,.wav,.m4a,.ogg,.webm,.mp4,audio/*,video/mp4"
+            disabled
+          />
+          <button type="button" disabled>Upload audio</button>
+        </form>
+        <p class="muted">Upload processing will be added in Stage 2.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="record-title">
+        <h2 id="record-title">Browser recording</h2>
+        <div class="button-row">
+          <button type="button" disabled>Start recording</button>
+          <button type="button" disabled>Stop recording</button>
+          <button type="button" disabled>Upload recording</button>
+        </div>
+        <p class="muted">Microphone recording will be added in Stage 2.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="status-title">
+        <h2 id="status-title">System status</h2>
+        <p id="health-status">Checking backend health...</p>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
