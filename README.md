@@ -6,16 +6,16 @@ QazScribe is an MVP web system for conference and meeting audio. The target pipe
 audio -> speech recognition -> Kazakh translation -> structured notes -> document export
 ```
 
-This repository currently contains a runnable FastAPI backend, static frontend, health endpoint, upload/task status flow, and browser recording upload.
+This repository currently contains a runnable FastAPI backend, static frontend, upload/recording flow, Whisper transcription, fallback translation/summary, document export, cleanup, and Docker-oriented deployment files.
 
 ## Project Structure
 
 ```text
 backend/     FastAPI application
 frontend/    Static HTML, CSS, and JavaScript
-deploy/      Deployment files and notes for later stages
+deploy/      Ubuntu, systemd, and nginx deployment files
+scripts/     Server initialization and health check helpers
 data/        Local runtime storage, ignored by git
-TASK.md      Full implementation task
 ```
 
 ## Local Development
@@ -95,17 +95,117 @@ Copy the example environment file if local overrides are needed:
 cp backend/.env.example backend/.env
 ```
 
-The default Stage 1 app runs without `.env`.
+The default local app runs without `.env`.
 
-## Deployment Notes
+## New GPU Server Deployment
 
-Target Ubuntu checks for the later deployment machine:
+The current target machine is a local GPU workstation/server:
+
+```text
+Ubuntu 24.04.3 LTS
+Intel Core i9-14900KF
+128 GB RAM
+NVIDIA RTX 4090 24 GB VRAM
+```
+
+Important storage rule:
+
+```text
+Do not store uploads, outputs, models, logs, or temp files on /.
+Use /media/proart/ssd/qazscribe.
+```
+
+Initialize server directories:
+
+```bash
+cd /media/proart/ssd/qazscribe/repo
+./scripts/init_server_dirs.sh
+```
+
+Or run the broader Ubuntu helper:
+
+```bash
+./deploy/install_ubuntu.sh
+```
+
+Recommended server `.env`:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Then set:
+
+```text
+QAZSCRIBE_BASE_DIR=/media/proart/ssd/qazscribe
+QAZSCRIBE_DATA_DIR=/media/proart/ssd/qazscribe/data
+QAZSCRIBE_UPLOADS_DIR=/media/proart/ssd/qazscribe/uploads
+QAZSCRIBE_PROCESSED_DIR=/media/proart/ssd/qazscribe/processed
+QAZSCRIBE_OUTPUTS_DIR=/media/proart/ssd/qazscribe/outputs
+QAZSCRIBE_MODELS_DIR=/media/proart/ssd/qazscribe/models
+QAZSCRIBE_LOGS_DIR=/media/proart/ssd/qazscribe/logs
+QAZSCRIBE_TMP_DIR=/media/proart/ssd/qazscribe/tmp
+
+ASR_MODEL_SIZE=large-v3
+ASR_DEVICE=cuda
+ASR_COMPUTE_TYPE=float16
+```
+
+Model cache variables for the server:
+
+```text
+HF_HOME=/media/proart/ssd/qazscribe/models/huggingface
+TRANSFORMERS_CACHE=/media/proart/ssd/qazscribe/models/huggingface
+TORCH_HOME=/media/proart/ssd/qazscribe/models/torch
+XDG_CACHE_HOME=/media/proart/ssd/qazscribe/models/cache
+```
+
+Start with Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+Stop:
+
+```bash
+docker compose down
+```
+
+Logs:
+
+```bash
+docker compose logs -f
+```
+
+Health checks:
+
+```text
+http://127.0.0.1:8000/health
+http://127.0.0.1:8000/health/storage
+http://127.0.0.1:8000/health/ai
+```
+
+Server checks:
 
 ```bash
 nvidia-smi
 python3 --version
 ffmpeg -version
 git --version
+docker --version
+docker compose version
+./scripts/check_server.sh
 ```
 
-Later stages will add Ubuntu deployment files.
+Network note: the new server has a 10G-capable adapter, but the observed Ethernet link was only 100 Mbps. For large uploads, check cable, wall port, switch, and `ethtool eno1`.
+
+## Public Access
+
+For MVP public access, put Nginx or Cloudflare Tunnel in front of the Docker stack:
+
+```text
+Internet user -> HTTPS URL -> Cloudflare Tunnel/Nginx -> QazScribe backend
+```
+
+Do not expose the workstation directly without HTTPS, upload limits, and access controls.

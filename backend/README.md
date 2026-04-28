@@ -28,5 +28,6 @@ Implemented:
 - Kazakh translation and structured notes with fallback mode
 - TXT, HTML, DOCX, and PDF document export
 - retention cleanup for uploads, processed files, and outputs
+- configurable server storage paths for `/media/proart/ssd/qazscribe`
 
-Ubuntu deployment files are planned for later stages.
+Deployment is handled through the repository `Dockerfile`, `docker-compose.yml`, `deploy/`, and `scripts/` directories.

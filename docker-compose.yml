@@ -1,0 +1,56 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qazscribe-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      QAZSCRIBE_BASE_DIR: /srv/qazscribe
+      QAZSCRIBE_DATA_DIR: /srv/qazscribe/data
+      QAZSCRIBE_UPLOADS_DIR: /srv/qazscribe/uploads
+      QAZSCRIBE_PROCESSED_DIR: /srv/qazscribe/processed
+      QAZSCRIBE_OUTPUTS_DIR: /srv/qazscribe/outputs
+      QAZSCRIBE_MODELS_DIR: /srv/qazscribe/models
+      QAZSCRIBE_LOGS_DIR: /srv/qazscribe/logs
+      QAZSCRIBE_TMP_DIR: /srv/qazscribe/tmp
+      HF_HOME: /srv/qazscribe/models/huggingface
+      TRANSFORMERS_CACHE: /srv/qazscribe/models/huggingface
+      TORCH_HOME: /srv/qazscribe/models/torch
+      XDG_CACHE_HOME: /srv/qazscribe/models/cache
+    volumes:
+      - /media/proart/ssd/qazscribe/data:/srv/qazscribe/data
+      - /media/proart/ssd/qazscribe/uploads:/srv/qazscribe/uploads
+      - /media/proart/ssd/qazscribe/processed:/srv/qazscribe/processed
+      - /media/proart/ssd/qazscribe/outputs:/srv/qazscribe/outputs
+      - /media/proart/ssd/qazscribe/models:/srv/qazscribe/models
+      - /media/proart/ssd/qazscribe/logs:/srv/qazscribe/logs
+      - /media/proart/ssd/qazscribe/tmp:/srv/qazscribe/tmp
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: qazscribe-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro

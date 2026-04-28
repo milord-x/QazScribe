@@ -15,6 +15,9 @@ data/outputs/*
 !data/uploads/.gitkeep
 !data/processed/.gitkeep
 !data/outputs/.gitkeep
+models/
+logs/
+tmp/
 
 *.mp3
 *.wav
@@ -35,3 +38,4 @@ ChatGPT.md
 STEPS.md
 TASK.md
 TASK_*.md
+NEWSERVER.md
