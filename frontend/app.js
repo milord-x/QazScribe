@@ -50,6 +50,18 @@ const statusMessages = {
   failed: "Обработка остановилась с ошибкой.",
 };
 
+async function readResponsePayload(response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  return {
+    detail: text || `Сервер вернул ${response.status}`,
+  };
+}
+
 async function loadHealth() {
   try {
     const response = await fetch("/api/health");
@@ -57,7 +69,7 @@ async function loadHealth() {
       throw new Error(`Проверка сервера вернула ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await readResponsePayload(response);
     healthStatus.textContent = data.status === "ok" ? "Сервер работает" : data.status;
   } catch (error) {
     healthStatus.textContent = "Сервер недоступен";
@@ -159,7 +171,7 @@ async function loadTask(taskId) {
     throw new Error(`Не удалось получить статус задачи: ${response.status}`);
   }
 
-  const task = await response.json();
+  const task = await readResponsePayload(response);
   setTaskView({
     taskId: task.task_id,
     status: task.status,
@@ -217,7 +229,7 @@ async function uploadFile(file, button, uploadMessage) {
       body: formData,
     });
 
-    const data = await response.json();
+    const data = await readResponsePayload(response);
     if (!response.ok) {
       throw new Error(data.detail || `Загрузка не прошла: ${response.status}`);
     }

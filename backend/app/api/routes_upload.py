@@ -22,6 +22,13 @@ ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".webm", ".mp4"}
 CHUNK_SIZE = 1024 * 1024
 
 
+def _stored_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(settings.project_root))
+    except ValueError:
+        return str(path)
+
+
 def _safe_filename(filename: str) -> str:
     raw_name = Path(filename).name
     stem = Path(raw_name).stem
@@ -50,7 +57,7 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             status="transcribing",
             progress=55,
             message="Transcribing audio with Whisper",
-            processed_path=str(converted_path.relative_to(settings.project_root)),
+            processed_path=_stored_path(converted_path),
             error="",
         )
         transcription = transcribe_audio(converted_path, settings)
@@ -63,7 +70,7 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             status="translating",
             progress=72,
             message="Translating transcript to Kazakh",
-            transcript_path=str(transcript_path.relative_to(settings.project_root)),
+            transcript_path=_stored_path(transcript_path),
             detected_language=transcription.detected_language,
             transcript_preview=transcription.full_transcript[:1200],
             error="",
@@ -79,7 +86,7 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             status="summarizing",
             progress=86,
             message="Generating structured meeting notes",
-            translation_path=str(translation_path.relative_to(settings.project_root)),
+            translation_path=_stored_path(translation_path),
             translation_preview=translation.translated_text[:1200],
             error="",
         )
@@ -100,7 +107,7 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             progress=94,
             message="Generating TXT, HTML, DOCX, and PDF documents",
             result_available=True,
-            summary_path=str(summary_path.relative_to(settings.project_root)),
+            summary_path=_stored_path(summary_path),
             summary_preview=notes.short_summary[:1200],
             error="",
         )
@@ -210,6 +217,6 @@ async def upload_audio(
             detail="Uploaded file is empty",
         )
 
-    create_task(task_id, safe_name, str(destination.relative_to(settings.project_root)))
+    create_task(task_id, safe_name, _stored_path(destination))
     background_tasks.add_task(_process_uploaded_audio, task_id, destination)
     return UploadResponse(task_id=task_id, status="queued")
