@@ -67,7 +67,7 @@ def main() -> int:
             return 1
 
         downloads = task.get("downloads") or {}
-        expected_formats = {"txt", "html", "docx", "pdf"}
+        expected_formats = {"txt", "srt", "vtt", "json", "html", "docx", "pdf"}
         missing = expected_formats - set(downloads)
         if missing:
             print(f"missing downloads: {sorted(missing)}", file=sys.stderr)

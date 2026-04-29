@@ -12,6 +12,9 @@ settings = get_settings()
 
 FORMAT_TO_FILE = {
     "txt": ("qazscribe_result.txt", "text/plain"),
+    "srt": ("qazscribe_result.srt", "application/x-subrip"),
+    "vtt": ("qazscribe_result.vtt", "text/vtt"),
+    "json": ("qazscribe_result.json", "application/json"),
     "html": ("qazscribe_result.html", "text/html"),
     "docx": (
         "qazscribe_result.docx",

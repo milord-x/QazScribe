@@ -7,134 +7,260 @@
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
+    <header class="app-bar">
+      <div class="brand">
+        <span class="brand-mark">Q</span>
+        <div>
+          <strong>QazScribe</strong>
+          <span>Протоколы конференций и заседаний</span>
+        </div>
+      </div>
+      <nav class="nav-tabs" aria-label="Разделы приложения">
+        <button type="button" class="nav-tab active" data-screen-target="welcome">Главная</button>
+        <button type="button" class="nav-tab" data-screen-target="capture">Запись</button>
+        <button type="button" class="nav-tab" data-screen-target="results">Результат</button>
+        <button type="button" class="nav-tab" data-screen-target="settings">Настройки</button>
+      </nav>
+      <p id="health-status" class="health-pill">Проверяю сервер...</p>
+    </header>
+
     <main class="page-shell">
-      <header class="header">
-        <p class="eyebrow">Протоколы конференций и заседаний</p>
-        <h1>QazScribe</h1>
-        <p>
-          Загрузите запись или запишите речь в браузере. Сервис распознает аудио,
-          подготовит текст, казахскую версию, краткое резюме и документы для скачивания.
-        </p>
-      </header>
-
-      <section class="process-strip" aria-label="Порядок обработки">
-        <div>
-          <span>1</span>
-          <strong>Аудио</strong>
-          <p>файл или запись</p>
-        </div>
-        <div>
-          <span>2</span>
-          <strong>Распознавание</strong>
-          <p>Whisper transcript</p>
-        </div>
-        <div>
-          <span>3</span>
-          <strong>Казахский текст</strong>
-          <p>перевод и резюме</p>
-        </div>
-        <div>
-          <span>4</span>
-          <strong>Документы</strong>
-          <p>TXT, HTML, DOCX, PDF</p>
-        </div>
-      </section>
-
-      <section class="panel input-panel" aria-labelledby="upload-title">
-        <div class="panel-heading">
+      <section class="screen active" id="screen-welcome">
+        <div class="hero">
           <div>
-            <p class="section-kicker">Вариант 1</p>
-            <h2 id="upload-title">Загрузить готовую запись</h2>
+            <p class="eyebrow">Локальная транскрибация без платных API</p>
+            <h1>Запишите речь или загрузите аудио</h1>
+            <p class="hero-copy">
+              QazScribe помогает получить текст, казахскую версию, краткую структуру
+              и документы для экспорта. Сначала проверьте микрофон, затем отправьте
+              запись на обработку.
+            </p>
+            <div class="button-row">
+              <button type="button" data-screen-target="capture">Начать работу</button>
+              <button type="button" class="secondary-button" data-screen-target="settings">
+                Выбрать микрофон
+              </button>
+            </div>
           </div>
-          <span class="small-note">до 300 MB</span>
-        </div>
-        <form class="upload-form" id="upload-form">
-          <label for="audio-file">Аудиофайл или видеофайл с речью</label>
-          <input
-            id="audio-file"
-            name="file"
-            type="file"
-            accept=".mp3,.wav,.m4a,.ogg,.webm,.mp4,audio/*,video/mp4"
-          />
-          <button type="submit" id="upload-button">Отправить на обработку</button>
-        </form>
-        <p class="muted">Поддерживаются: mp3, wav, m4a, ogg, webm, mp4.</p>
-      </section>
-
-      <section class="panel input-panel" aria-labelledby="record-title">
-        <div class="panel-heading">
-          <div>
-            <p class="section-kicker">Вариант 2</p>
-            <h2 id="record-title">Записать речь здесь</h2>
-          </div>
-          <span class="small-note">микрофон браузера</span>
-        </div>
-        <div class="button-row">
-          <button type="button" id="record-start">Начать запись</button>
-          <button type="button" id="record-stop" disabled>Остановить</button>
-          <button type="button" id="record-upload" disabled>Загрузить запись</button>
-        </div>
-        <p id="record-status" class="muted">Запись ещё не начата.</p>
-        <audio id="record-preview" controls hidden></audio>
-      </section>
-
-      <section class="panel status-panel" aria-labelledby="status-title">
-        <div class="panel-heading">
-          <div>
-            <p class="section-kicker">Состояние</p>
-            <h2 id="status-title">Сервер и задача</h2>
-          </div>
-          <p id="health-status" class="health-pill">Проверяю сервер...</p>
-        </div>
-        <div class="progress-track" aria-hidden="true">
-          <div id="progress-bar"></div>
-        </div>
-        <p id="task-message" class="muted">Загрузите файл или запись, чтобы создать задачу.</p>
-        <p id="task-error" class="error" hidden></p>
-      </section>
-
-      <section class="panel" aria-labelledby="task-title">
-        <h2 id="task-title">Детали обработки</h2>
-        <div class="status-grid">
-          <div>
-            <span class="status-label">Номер задачи</span>
-            <strong id="task-id">Пока нет</strong>
-          </div>
-          <div>
-            <span class="status-label">Этап</span>
-            <strong id="task-status">Ожидание</strong>
-          </div>
-          <div>
-            <span class="status-label">Готовность</span>
-            <strong id="task-progress">0%</strong>
+          <div class="hero-status" aria-label="Состояние процесса">
+            <span>Готово к тесту</span>
+            <strong>Микрофон или файл</strong>
+            <p>После обработки появятся текст, резюме и ссылки на документы.</p>
           </div>
         </div>
+
+        <section class="steps-grid" aria-label="Как пользоваться QazScribe">
+          <article>
+            <span>1</span>
+            <h2>Начните запись с микрофона</h2>
+            <p>Нажмите кнопку микрофона. Разрешите браузеру доступ к микрофону при запросе.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h2>Говорите чётко</h2>
+            <p>
+              Черновой текст может появляться в браузере в реальном времени. Команды
+              «точка», «запятая», «новый абзац» помогают оформить пунктуацию.
+            </p>
+          </article>
+          <article>
+            <span>3</span>
+            <h2>Или загрузите аудиофайл</h2>
+            <p>
+              Переключитесь в режим «Файл» и загрузите MP3, WAV, M4A, OGG, WEBM или MP4.
+              Whisper обработает запись на вашем сервере.
+            </p>
+          </article>
+          <article>
+            <span>4</span>
+            <h2>Отредактируйте и экспортируйте</h2>
+            <p>
+              Проверьте текст, внесите правки, затем скачайте TXT, SRT, VTT, JSON, PDF,
+              DOCX или HTML.
+            </p>
+          </article>
+        </section>
       </section>
 
-      <section class="panel" aria-labelledby="result-title">
-        <h2 id="result-title">Распознанный текст</h2>
-        <p>
-          <span class="status-label">Определённый язык</span>
-          <strong id="detected-language">Пока нет</strong>
-        </p>
-        <pre id="transcript-preview">Текст появится после обработки Whisper.</pre>
-      </section>
-
-      <section class="panel" aria-labelledby="translation-title">
-        <h2 id="translation-title">Казахская версия</h2>
-        <pre id="translation-preview">Перевод появится после обработки.</pre>
-      </section>
-
-      <section class="panel" aria-labelledby="summary-title">
-        <h2 id="summary-title">Краткое резюме и структура</h2>
-        <pre id="summary-preview">Резюме появится после обработки.</pre>
-      </section>
-
-      <section class="panel" aria-labelledby="downloads-title">
-        <h2 id="downloads-title">Скачать результат</h2>
-        <div class="download-row" id="download-links">
-          <span class="muted">Документы появятся после завершения обработки.</span>
+      <section class="screen" id="screen-capture">
+        <div class="section-title">
+          <p class="eyebrow">Источник речи</p>
+          <h1>Запись или файл</h1>
         </div>
+
+        <div class="mode-tabs" aria-label="Выбор источника">
+          <button type="button" class="mode-tab active" data-mode-target="record-panel">
+            Микрофон
+          </button>
+          <button type="button" class="mode-tab" data-mode-target="file-panel">Файл</button>
+        </div>
+
+        <section class="panel input-panel active" id="record-panel" aria-labelledby="record-title">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Режим микрофона</p>
+              <h2 id="record-title">Записать речь здесь</h2>
+            </div>
+            <span class="small-note">браузерная запись</span>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              Микрофон
+              <select id="mic-select"></select>
+            </label>
+            <button type="button" class="secondary-button" id="refresh-mics">Обновить список</button>
+          </div>
+
+          <div class="button-row">
+            <button type="button" id="record-start">Начать запись</button>
+            <button type="button" id="record-stop" disabled>Остановить</button>
+            <button type="button" id="record-upload" disabled>Отправить запись</button>
+          </div>
+          <p id="record-status" class="muted">Запись ещё не начата.</p>
+          <audio id="record-preview" controls hidden></audio>
+
+          <div class="live-box">
+            <div class="panel-heading compact">
+              <h3>Черновой текст в браузере</h3>
+              <span id="speech-status" class="small-note">ожидание</span>
+            </div>
+            <pre id="live-transcript">Если браузер поддерживает распознавание речи, черновой текст появится здесь во время записи.</pre>
+          </div>
+        </section>
+
+        <section class="panel input-panel" id="file-panel" aria-labelledby="upload-title">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Режим файла</p>
+              <h2 id="upload-title">Загрузить готовую запись</h2>
+            </div>
+            <span class="small-note">до 300 MB</span>
+          </div>
+          <form class="upload-form" id="upload-form">
+            <label for="audio-file">Аудиофайл или видеофайл с речью</label>
+            <input
+              id="audio-file"
+              name="file"
+              type="file"
+              accept=".mp3,.wav,.m4a,.ogg,.webm,.mp4,audio/*,video/mp4"
+            />
+            <button type="submit" id="upload-button">Отправить на обработку</button>
+          </form>
+          <p class="muted">Поддерживаются: mp3, wav, m4a, ogg, webm, mp4.</p>
+        </section>
+
+        <section class="panel status-panel" aria-labelledby="status-title">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Состояние</p>
+              <h2 id="status-title">Сервер и задача</h2>
+            </div>
+            <button type="button" class="secondary-button" data-screen-target="results">
+              Открыть результат
+            </button>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <div id="progress-bar"></div>
+          </div>
+          <p id="task-message" class="muted">Загрузите файл или запись, чтобы создать задачу.</p>
+          <p id="task-error" class="error" hidden></p>
+        </section>
+      </section>
+
+      <section class="screen" id="screen-results">
+        <div class="section-title">
+          <p class="eyebrow">Обработка</p>
+          <h1>Результат</h1>
+        </div>
+
+        <section class="panel" aria-labelledby="task-title">
+          <h2 id="task-title">Детали обработки</h2>
+          <div class="status-grid">
+            <div>
+              <span class="status-label">Номер задачи</span>
+              <strong id="task-id">Пока нет</strong>
+            </div>
+            <div>
+              <span class="status-label">Этап</span>
+              <strong id="task-status">Ожидание</strong>
+            </div>
+            <div>
+              <span class="status-label">Готовность</span>
+              <strong id="task-progress">0%</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="result-title">
+          <h2 id="result-title">Распознанный текст</h2>
+          <p>
+            <span class="status-label">Определённый язык</span>
+            <strong id="detected-language">Пока нет</strong>
+          </p>
+          <textarea id="transcript-preview">Текст появится после обработки Whisper.</textarea>
+        </section>
+
+        <section class="panel" aria-labelledby="translation-title">
+          <h2 id="translation-title">Казахская версия</h2>
+          <textarea id="translation-preview">Перевод появится после обработки.</textarea>
+        </section>
+
+        <section class="panel" aria-labelledby="summary-title">
+          <h2 id="summary-title">Краткое резюме и структура</h2>
+          <textarea id="summary-preview">Резюме появится после обработки.</textarea>
+        </section>
+
+        <section class="panel" aria-labelledby="downloads-title">
+          <h2 id="downloads-title">Скачать результат</h2>
+          <div class="download-row" id="download-links">
+            <span class="muted">Документы появятся после завершения обработки.</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="screen" id="screen-settings">
+        <div class="section-title">
+          <p class="eyebrow">Настройки</p>
+          <h1>Микрофон и режим обработки</h1>
+        </div>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Ввод</p>
+              <h2>Выбор микрофона</h2>
+            </div>
+            <button type="button" class="secondary-button" id="request-mic-access">
+              Разрешить доступ
+            </button>
+          </div>
+          <label>
+            Активный микрофон
+            <select id="settings-mic-select"></select>
+          </label>
+          <p id="mic-help" class="muted">
+            Если нужный микрофон не отображается, нажмите «Разрешить доступ», затем обновите список.
+          </p>
+        </section>
+
+        <section class="panel">
+          <h2>Текущий режим</h2>
+          <div class="settings-list">
+            <div>
+              <span class="status-label">Распознавание</span>
+              <strong>Whisper на backend</strong>
+            </div>
+            <div>
+              <span class="status-label">Платные API</span>
+              <strong>Не обязательны</strong>
+            </div>
+            <div>
+              <span class="status-label">Экспорт</span>
+              <strong>TXT, SRT, VTT, JSON, PDF, DOCX, HTML</strong>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
 

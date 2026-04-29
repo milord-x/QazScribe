@@ -1,4 +1,8 @@
 const healthStatus = document.querySelector("#health-status");
+const navButtons = document.querySelectorAll("[data-screen-target]");
+const screens = document.querySelectorAll(".screen");
+const modeButtons = document.querySelectorAll("[data-mode-target]");
+const modePanels = document.querySelectorAll(".input-panel");
 const uploadForm = document.querySelector("#upload-form");
 const audioFileInput = document.querySelector("#audio-file");
 const uploadButton = document.querySelector("#upload-button");
@@ -7,6 +11,13 @@ const recordStopButton = document.querySelector("#record-stop");
 const recordUploadButton = document.querySelector("#record-upload");
 const recordStatusEl = document.querySelector("#record-status");
 const recordPreview = document.querySelector("#record-preview");
+const micSelect = document.querySelector("#mic-select");
+const settingsMicSelect = document.querySelector("#settings-mic-select");
+const refreshMicsButton = document.querySelector("#refresh-mics");
+const requestMicAccessButton = document.querySelector("#request-mic-access");
+const micHelpEl = document.querySelector("#mic-help");
+const liveTranscriptEl = document.querySelector("#live-transcript");
+const speechStatusEl = document.querySelector("#speech-status");
 const taskIdEl = document.querySelector("#task-id");
 const taskStatusEl = document.querySelector("#task-status");
 const taskProgressEl = document.querySelector("#task-progress");
@@ -24,6 +35,10 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let recordedBlob = null;
 let recordingStream = null;
+let speechRecognition = null;
+let speechFinalText = "";
+
+const MIC_STORAGE_KEY = "qazscribe.selectedMicrophoneId";
 
 const statusLabels = {
   queued: "В очереди",
@@ -45,10 +60,36 @@ const statusMessages = {
   transcribing: "Whisper распознаёт речь.",
   translating: "Готовим казахскую версию текста.",
   summarizing: "Собираем краткое резюме и структуру.",
-  generating_documents: "Формируем TXT, HTML, DOCX и PDF.",
+  generating_documents: "Формируем документы.",
   completed: "Готово. Документы можно скачать ниже.",
   failed: "Обработка остановилась с ошибкой.",
 };
+
+function showScreen(screenName) {
+  screens.forEach((screen) => {
+    screen.classList.toggle("active", screen.id === `screen-${screenName}`);
+  });
+  document.querySelectorAll(".nav-tab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.screenTarget === screenName);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function showMode(panelId) {
+  modePanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.id === panelId);
+  });
+  modeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.modeTarget === panelId);
+  });
+}
+
+function setTextValue(element, value, fallback) {
+  if (!element) {
+    return;
+  }
+  element.value = value || fallback;
+}
 
 async function readResponsePayload(response) {
   const contentType = response.headers.get("content-type") || "";
@@ -71,6 +112,7 @@ async function loadHealth() {
 
     const data = await readResponsePayload(response);
     healthStatus.textContent = data.status === "ok" ? "Сервер работает" : data.status;
+    healthStatus.classList.remove("error");
   } catch (error) {
     healthStatus.textContent = "Сервер недоступен";
     healthStatus.classList.add("error");
@@ -108,16 +150,17 @@ function setTaskView({
     detectedLanguageEl.textContent = detectedLanguage || "Пока нет";
   }
   if (transcriptPreview !== undefined) {
-    transcriptPreviewEl.textContent =
-      transcriptPreview || "Текст появится после обработки Whisper.";
+    setTextValue(
+      transcriptPreviewEl,
+      transcriptPreview,
+      "Текст появится после обработки Whisper.",
+    );
   }
   if (translationPreview !== undefined) {
-    translationPreviewEl.textContent =
-      translationPreview || "Перевод появится после обработки.";
+    setTextValue(translationPreviewEl, translationPreview, "Перевод появится после обработки.");
   }
   if (summaryPreview !== undefined) {
-    summaryPreviewEl.textContent =
-      summaryPreview || "Резюме появится после обработки.";
+    setTextValue(summaryPreviewEl, summaryPreview, "Резюме появится после обработки.");
   }
   if (downloads !== undefined) {
     renderDownloads(downloads);
@@ -145,9 +188,12 @@ function renderDownloads(downloads) {
 
   const labels = {
     txt: "TXT",
-    html: "HTML",
-    docx: "DOCX",
+    srt: "SRT",
+    vtt: "VTT",
+    json: "JSON",
     pdf: "PDF",
+    docx: "DOCX",
+    html: "HTML",
   };
 
   Object.entries(labels).forEach(([format, label]) => {
@@ -188,6 +234,7 @@ async function loadTask(taskId) {
   if (task.status === "completed" || task.status === "failed") {
     clearInterval(pollTimer);
     pollTimer = null;
+    showScreen("results");
   }
 }
 
@@ -214,6 +261,7 @@ async function uploadFile(file, button, uploadMessage) {
   formData.append("file", file);
 
   button.disabled = true;
+  showScreen("capture");
   setTaskView({
     taskId: "",
     status: "Uploading",
@@ -259,10 +307,86 @@ async function uploadAudio(event) {
   const file = audioFileInput.files[0];
   if (!file) {
     setTaskView({ error: "Сначала выберите аудио или видеофайл." });
+    showScreen("capture");
+    showMode("file-panel");
     return;
   }
 
   await uploadFile(file, uploadButton, "Загружаю файл на сервер...");
+}
+
+function selectedMicId() {
+  return micSelect.value || settingsMicSelect.value || "";
+}
+
+function saveSelectedMic(deviceId) {
+  if (deviceId) {
+    localStorage.setItem(MIC_STORAGE_KEY, deviceId);
+  } else {
+    localStorage.removeItem(MIC_STORAGE_KEY);
+  }
+}
+
+function syncMicSelects(deviceId) {
+  [micSelect, settingsMicSelect].forEach((select) => {
+    if (select.value !== deviceId) {
+      select.value = deviceId;
+    }
+  });
+}
+
+function renderMicOptions(devices) {
+  const rememberedId = localStorage.getItem(MIC_STORAGE_KEY) || "";
+  const audioInputs = devices.filter((device) => device.kind === "audioinput");
+  const options = audioInputs.length
+    ? audioInputs
+    : [{ deviceId: "", label: "Микрофон по умолчанию" }];
+
+  [micSelect, settingsMicSelect].forEach((select) => {
+    select.innerHTML = "";
+    options.forEach((device, index) => {
+      const option = document.createElement("option");
+      option.value = device.deviceId;
+      option.textContent = device.label || `Микрофон ${index + 1}`;
+      select.appendChild(option);
+    });
+  });
+
+  const selected = options.some((device) => device.deviceId === rememberedId)
+    ? rememberedId
+    : options[0].deviceId;
+  syncMicSelects(selected);
+  saveSelectedMic(selected);
+}
+
+async function loadMicrophones() {
+  if (!navigator.mediaDevices?.enumerateDevices) {
+    micHelpEl.textContent = "Этот браузер не показывает список микрофонов.";
+    return;
+  }
+
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    renderMicOptions(devices);
+    micHelpEl.textContent = "Выбранный микрофон сохранится в этом браузере.";
+  } catch (error) {
+    micHelpEl.textContent = `Не удалось получить список микрофонов: ${error.message}`;
+  }
+}
+
+async function requestMicrophoneAccess() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    micHelpEl.textContent = "Браузер не поддерживает доступ к микрофону.";
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop());
+    await loadMicrophones();
+  } catch (error) {
+    micHelpEl.textContent = `Доступ к микрофону не получен: ${error.message}`;
+  }
 }
 
 function setRecordingState(state, message) {
@@ -291,6 +415,51 @@ function getRecorderOptions() {
   return mimeType ? { mimeType } : undefined;
 }
 
+function normalizeSpeechText(text) {
+  return text
+    .replace(/\bточка\b/gi, ".")
+    .replace(/\bзапятая\b/gi, ",")
+    .replace(/\bновый абзац\b/gi, "\n\n")
+    .replace(/\s+([.,!?])/g, "$1")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
+}
+
+function createSpeechRecognition() {
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) {
+    speechStatusEl.textContent = "не поддерживается";
+    return null;
+  }
+
+  const recognition = new Recognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "ru-RU";
+  recognition.addEventListener("result", (event) => {
+    let interimText = "";
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const text = event.results[index][0].transcript;
+      if (event.results[index].isFinal) {
+        speechFinalText = `${speechFinalText} ${text}`;
+      } else {
+        interimText = `${interimText} ${text}`;
+      }
+    }
+    liveTranscriptEl.textContent = normalizeSpeechText(`${speechFinalText} ${interimText}`);
+  });
+  recognition.addEventListener("start", () => {
+    speechStatusEl.textContent = "слушает";
+  });
+  recognition.addEventListener("end", () => {
+    speechStatusEl.textContent = "остановлено";
+  });
+  recognition.addEventListener("error", () => {
+    speechStatusEl.textContent = "черновик недоступен";
+  });
+  return recognition;
+}
+
 async function startRecording() {
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
     setRecordingState("unsupported", "Браузер не поддерживает запись с микрофона.");
@@ -300,10 +469,14 @@ async function startRecording() {
   try {
     recordedChunks = [];
     recordedBlob = null;
+    speechFinalText = "";
+    liveTranscriptEl.textContent = "Говорите. Если браузер поддерживает распознавание, текст появится здесь.";
     recordPreview.hidden = true;
     recordPreview.removeAttribute("src");
 
-    recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const deviceId = selectedMicId();
+    const audio = deviceId ? { deviceId: { exact: deviceId } } : true;
+    recordingStream = await navigator.mediaDevices.getUserMedia({ audio });
     mediaRecorder = new MediaRecorder(recordingStream, getRecorderOptions());
 
     mediaRecorder.addEventListener("dataavailable", (event) => {
@@ -323,11 +496,23 @@ async function startRecording() {
       recordingStream = null;
       mediaRecorder = null;
 
+      if (speechRecognition) {
+        try {
+          speechRecognition.stop();
+        } catch (error) {
+          console.debug("Speech recognition was already stopped.", error);
+        }
+      }
+
       setRecordingState("ready", "Запись готова к загрузке.");
     });
 
     mediaRecorder.start();
-    setRecordingState("recording", "Идёт запись. Говорите в микрофон.");
+    speechRecognition = createSpeechRecognition();
+    if (speechRecognition) {
+      speechRecognition.start();
+    }
+    setRecordingState("recording", "Идёт запись. Говорите в выбранный микрофон.");
   } catch (error) {
     setRecordingState("idle", "Не удалось получить доступ к микрофону.");
     setTaskView({ error: error.message });
@@ -357,13 +542,31 @@ async function uploadRecording() {
   setRecordingState("ready", "Запись загружена. Можно записать заново или отправить ещё раз.");
 }
 
+navButtons.forEach((button) => {
+  button.addEventListener("click", () => showScreen(button.dataset.screenTarget));
+});
+
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => showMode(button.dataset.modeTarget));
+});
+
 uploadForm.addEventListener("submit", uploadAudio);
 recordStartButton.addEventListener("click", startRecording);
 recordStopButton.addEventListener("click", stopRecording);
 recordUploadButton.addEventListener("click", uploadRecording);
+refreshMicsButton.addEventListener("click", loadMicrophones);
+requestMicAccessButton.addEventListener("click", requestMicrophoneAccess);
+
+[micSelect, settingsMicSelect].forEach((select) => {
+  select.addEventListener("change", () => {
+    saveSelectedMic(select.value);
+    syncMicSelects(select.value);
+  });
+});
 
 if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
   setRecordingState("unsupported", "Браузер не поддерживает запись с микрофона.");
 }
 
 loadHealth();
+loadMicrophones();

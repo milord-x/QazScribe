@@ -1,5 +1,6 @@
 from datetime import datetime
 from html import escape
+import json
 from pathlib import Path
 import textwrap
 from typing import Any
@@ -140,6 +141,64 @@ def _html(payload: dict[str, Any]) -> str:
 """
 
 
+def _timestamp_srt(seconds: float) -> str:
+    milliseconds = int(round(seconds * 1000))
+    hours, remainder = divmod(milliseconds, 3_600_000)
+    minutes, remainder = divmod(remainder, 60_000)
+    secs, millis = divmod(remainder, 1000)
+    return f"{hours:02}:{minutes:02}:{secs:02},{millis:03}"
+
+
+def _timestamp_vtt(seconds: float) -> str:
+    return _timestamp_srt(seconds).replace(",", ".")
+
+
+def _subtitle_segments(transcript: dict[str, Any]) -> list[dict[str, Any]]:
+    segments = transcript.get("segments") or []
+    normalized = []
+    for index, segment in enumerate(segments, start=1):
+        text = str(segment.get("text") or "").strip()
+        if not text:
+            continue
+        start = float(segment.get("start") or 0)
+        end = float(segment.get("end") or max(start + 1, index))
+        normalized.append({"start": start, "end": max(end, start + 0.5), "text": text})
+    if normalized:
+        return normalized
+
+    full_text = str(transcript.get("full_transcript") or "").strip()
+    return [{"start": 0.0, "end": 3.0, "text": full_text}] if full_text else []
+
+
+def _srt(transcript: dict[str, Any]) -> str:
+    blocks = []
+    for index, segment in enumerate(_subtitle_segments(transcript), start=1):
+        blocks.append(
+            "\n".join(
+                [
+                    str(index),
+                    f"{_timestamp_srt(segment['start'])} --> {_timestamp_srt(segment['end'])}",
+                    segment["text"],
+                ]
+            )
+        )
+    return "\n\n".join(blocks).strip() + "\n"
+
+
+def _vtt(transcript: dict[str, Any]) -> str:
+    blocks = ["WEBVTT"]
+    for segment in _subtitle_segments(transcript):
+        blocks.append(
+            "\n".join(
+                [
+                    f"{_timestamp_vtt(segment['start'])} --> {_timestamp_vtt(segment['end'])}",
+                    segment["text"],
+                ]
+            )
+        )
+    return "\n\n".join(blocks).strip() + "\n"
+
+
 def _write_docx(path: Path, payload: dict[str, Any]) -> None:
     document = Document()
     document.add_heading(payload["title"], level=0)
@@ -249,12 +308,31 @@ def generate_documents(
 
         paths = {
             "txt": output_dir / "qazscribe_result.txt",
+            "srt": output_dir / "qazscribe_result.srt",
+            "vtt": output_dir / "qazscribe_result.vtt",
+            "json": output_dir / "qazscribe_result.json",
             "html": output_dir / "qazscribe_result.html",
             "docx": output_dir / "qazscribe_result.docx",
             "pdf": output_dir / "qazscribe_result.pdf",
         }
 
         paths["txt"].write_text(_plain_text(payload), encoding="utf-8")
+        paths["srt"].write_text(_srt(transcript), encoding="utf-8")
+        paths["vtt"].write_text(_vtt(transcript), encoding="utf-8")
+        paths["json"].write_text(
+            json.dumps(
+                {
+                    "task_id": task_id,
+                    "detected_language": detected_language,
+                    "transcript": transcript,
+                    "translation": translation,
+                    "summary": summary,
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
         paths["html"].write_text(_html(payload), encoding="utf-8")
         _write_docx(paths["docx"], payload)
         _write_pdf(paths["pdf"], payload)
