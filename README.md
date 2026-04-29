@@ -178,6 +178,9 @@ Start with Docker Compose:
 docker compose up -d --build
 ```
 
+If you use a custom logo, place `logo.png` in the repository root before
+building the container. The app serves it as the site logo and favicon.
+
 Stop:
 
 ```bash

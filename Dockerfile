@@ -14,8 +14,7 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --upgrade pip \
     && pip install -r /app/backend/requirements.txt
 
-COPY backend /app/backend
-COPY frontend /app/frontend
+COPY . /app
 
 EXPOSE 8000
 
