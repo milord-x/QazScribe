@@ -65,11 +65,16 @@ def _fallback_notes(
     sentences = _split_sentences(source_text)
     short_summary = " ".join(sentences[:3]) if sentences else "Речь не обнаружена."
     key_points = sentences[:5] if sentences else []
+    detailed_summary = "\n".join(
+        f"{index}. {sentence}" for index, sentence in enumerate(sentences, start=1)
+    )
+    if not detailed_summary:
+        detailed_summary = short_summary
 
     return StructuredNotes(
         title="QazScribe: протокол встречи",
         short_summary=short_summary,
-        detailed_summary=short_summary,
+        detailed_summary=detailed_summary,
         key_points=key_points,
         decisions=[],
         action_items=[],

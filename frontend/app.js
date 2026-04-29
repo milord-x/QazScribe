@@ -21,12 +21,16 @@ const speechStatusEl = document.querySelector("#speech-status");
 const taskIdEl = document.querySelector("#task-id");
 const taskStatusEl = document.querySelector("#task-status");
 const taskProgressEl = document.querySelector("#task-progress");
+const taskDurationEl = document.querySelector("#task-duration");
+const taskSpeakersEl = document.querySelector("#task-speakers");
 const taskMessageEl = document.querySelector("#task-message");
 const taskErrorEl = document.querySelector("#task-error");
 const progressBar = document.querySelector("#progress-bar");
 const detectedLanguageEl = document.querySelector("#detected-language");
 const transcriptPreviewEl = document.querySelector("#transcript-preview");
+const speakerPreviewEl = document.querySelector("#speaker-preview");
 const translationPreviewEl = document.querySelector("#translation-preview");
+const detailedSummaryPreviewEl = document.querySelector("#detailed-summary-preview");
 const summaryPreviewEl = document.querySelector("#summary-preview");
 const downloadLinksEl = document.querySelector("#download-links");
 
@@ -91,6 +95,16 @@ function setTextValue(element, value, fallback) {
   element.value = value || fallback;
 }
 
+function formatDuration(seconds) {
+  if (!seconds) {
+    return "Пока нет";
+  }
+  const total = Math.round(seconds);
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
 async function readResponsePayload(response) {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -130,6 +144,10 @@ function setTaskView({
   transcriptPreview,
   translationPreview,
   summaryPreview,
+  detailedSummaryPreview,
+  speakerPreview,
+  recordingDurationSeconds,
+  speakerCount,
   downloads,
 }) {
   if (taskId !== undefined) {
@@ -142,6 +160,12 @@ function setTaskView({
     const value = progress || 0;
     taskProgressEl.textContent = `${value}%`;
     progressBar.style.width = `${value}%`;
+  }
+  if (recordingDurationSeconds !== undefined) {
+    taskDurationEl.textContent = formatDuration(recordingDurationSeconds);
+  }
+  if (speakerCount !== undefined) {
+    taskSpeakersEl.textContent = speakerCount ? `${speakerCount}` : "Пока нет";
   }
   if (message !== undefined) {
     taskMessageEl.textContent = message || "";
@@ -159,8 +183,18 @@ function setTaskView({
   if (translationPreview !== undefined) {
     setTextValue(translationPreviewEl, translationPreview, "Перевод появится после обработки.");
   }
+  if (speakerPreview !== undefined) {
+    setTextValue(speakerPreviewEl, speakerPreview, "Спикеры появятся после обработки.");
+  }
+  if (detailedSummaryPreview !== undefined) {
+    setTextValue(
+      detailedSummaryPreviewEl,
+      detailedSummaryPreview,
+      "Конспект появится после обработки.",
+    );
+  }
   if (summaryPreview !== undefined) {
-    setTextValue(summaryPreviewEl, summaryPreview, "Резюме появится после обработки.");
+    setTextValue(summaryPreviewEl, summaryPreview, "Краткое резюме появится после обработки.");
   }
   if (downloads !== undefined) {
     renderDownloads(downloads);
@@ -228,6 +262,10 @@ async function loadTask(taskId) {
     transcriptPreview: task.transcript_preview,
     translationPreview: task.translation_preview,
     summaryPreview: task.summary_preview,
+    detailedSummaryPreview: task.detailed_summary_preview,
+    speakerPreview: task.speaker_preview,
+    recordingDurationSeconds: task.recording_duration_seconds,
+    speakerCount: task.speaker_count,
     downloads: task.downloads,
   });
 

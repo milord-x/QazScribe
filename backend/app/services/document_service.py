@@ -54,13 +54,23 @@ def _build_payload(
     transcript: dict[str, Any],
     translation: dict[str, Any],
     summary: dict[str, Any],
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    metadata = metadata or {}
+    segments = _subtitle_segments(transcript)
+    speaker_names = sorted({segment.get("speaker", "Спикер 1") for segment in segments})
+    duration = metadata.get("recording_duration_seconds") or _recording_duration(segments)
     return {
-        "title": "QazScribe Conference AI Notes",
+        "title": "QazScribe: конспект записи",
         "task_id": task_id,
         "processed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "recording_started_at": metadata.get("recording_started_at") or "unknown",
+        "recording_duration": _format_duration(duration),
+        "speaker_count": len(speaker_names) if speaker_names else 0,
+        "speaker_names": speaker_names,
         "detected_language": detected_language or transcript.get("detected_language") or "unknown",
         "original_transcript": transcript.get("full_transcript") or "",
+        "speaker_transcript": _speaker_transcript(segments),
         "kazakh_translation": translation.get("translated_text") or "",
         "short_summary": summary.get("short_summary") or "",
         "detailed_summary": summary.get("detailed_summary") or "",
@@ -76,19 +86,20 @@ def _build_payload(
 def _plain_text(payload: dict[str, Any]) -> str:
     parts = [
         payload["title"],
-        f"Task ID: {payload['task_id']}",
-        f"Processing date/time: {payload['processed_at']}",
-        f"Detected language: {payload['detected_language']}",
-        _section("Original transcript", payload["original_transcript"]),
-        _section("Kazakh translation", payload["kazakh_translation"]),
-        _section("Short summary", payload["short_summary"]),
-        _section("Detailed summary", payload["detailed_summary"]),
-        _section("Key points", payload["key_points"]),
-        _section("Decisions", payload["decisions"]),
-        _section("Action items", payload["action_items"]),
-        _section("Participants or speakers", payload["participants_or_speakers"]),
-        _section("Risks or open questions", payload["risks_or_open_questions"]),
-        _section("Final notes", payload["final_notes"]),
+        f"Номер задачи: {payload['task_id']}",
+        f"Время начала записи: {payload['recording_started_at']}",
+        f"Длительность записи: {payload['recording_duration']}",
+        f"Количество спикеров: {payload['speaker_count']}",
+        f"Обработано: {payload['processed_at']}",
+        f"Определённый язык: {payload['detected_language']}",
+        _section("Полная расшифровка по спикерам", payload["speaker_transcript"]),
+        _section("Основной полный конспект", payload["detailed_summary"]),
+        _section("Краткое резюме", payload["short_summary"]),
+        _section("Ключевые пункты", payload["key_points"]),
+        _section("Решения", payload["decisions"]),
+        _section("Задачи", payload["action_items"]),
+        _section("Казахская версия", payload["kazakh_translation"]),
+        _section("Финальные заметки", payload["final_notes"]),
     ]
     return "\n".join(parts).strip() + "\n"
 
@@ -102,16 +113,14 @@ def _html(payload: dict[str, Any]) -> str:
         return f"<p>{escape(_text(value).strip() or 'Not available.')}</p>"
 
     sections = [
-        ("Original transcript", payload["original_transcript"]),
-        ("Kazakh translation", payload["kazakh_translation"]),
-        ("Short summary", payload["short_summary"]),
-        ("Detailed summary", payload["detailed_summary"]),
-        ("Key points", payload["key_points"]),
-        ("Decisions", payload["decisions"]),
-        ("Action items", payload["action_items"]),
-        ("Participants or speakers", payload["participants_or_speakers"]),
-        ("Risks or open questions", payload["risks_or_open_questions"]),
-        ("Final notes", payload["final_notes"]),
+        ("Полная расшифровка по спикерам", payload["speaker_transcript"]),
+        ("Основной полный конспект", payload["detailed_summary"]),
+        ("Краткое резюме", payload["short_summary"]),
+        ("Ключевые пункты", payload["key_points"]),
+        ("Решения", payload["decisions"]),
+        ("Задачи", payload["action_items"]),
+        ("Казахская версия", payload["kazakh_translation"]),
+        ("Финальные заметки", payload["final_notes"]),
     ]
     body = "\n".join(
         f"<section><h2>{escape(title)}</h2>{list_or_paragraph(value)}</section>"
@@ -132,9 +141,12 @@ def _html(payload: dict[str, Any]) -> str:
   </head>
   <body>
     <h1>{escape(payload["title"])}</h1>
-    <p class="meta">Task ID: {escape(payload["task_id"])}</p>
-    <p class="meta">Processing date/time: {escape(payload["processed_at"])}</p>
-    <p class="meta">Detected language: {escape(payload["detected_language"])}</p>
+    <p class="meta">Номер задачи: {escape(payload["task_id"])}</p>
+    <p class="meta">Время начала записи: {escape(payload["recording_started_at"])}</p>
+    <p class="meta">Длительность записи: {escape(payload["recording_duration"])}</p>
+    <p class="meta">Количество спикеров: {escape(str(payload["speaker_count"]))}</p>
+    <p class="meta">Обработано: {escape(payload["processed_at"])}</p>
+    <p class="meta">Определённый язык: {escape(payload["detected_language"])}</p>
     {body}
   </body>
 </html>
@@ -162,12 +174,43 @@ def _subtitle_segments(transcript: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         start = float(segment.get("start") or 0)
         end = float(segment.get("end") or max(start + 1, index))
-        normalized.append({"start": start, "end": max(end, start + 0.5), "text": text})
+        normalized.append(
+            {
+                "start": start,
+                "end": max(end, start + 0.5),
+                "text": text,
+                "speaker": str(segment.get("speaker") or "Спикер 1"),
+            }
+        )
     if normalized:
         return normalized
 
     full_text = str(transcript.get("full_transcript") or "").strip()
-    return [{"start": 0.0, "end": 3.0, "text": full_text}] if full_text else []
+    return [{"start": 0.0, "end": 3.0, "text": full_text, "speaker": "Спикер 1"}] if full_text else []
+
+
+def _recording_duration(segments: list[dict[str, Any]]) -> float:
+    if not segments:
+        return 0.0
+    return max(float(segment.get("end") or 0) for segment in segments)
+
+
+def _format_duration(seconds: float | int | None) -> str:
+    total_seconds = int(round(float(seconds or 0)))
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"{hours:02}:{minutes:02}:{secs:02}"
+    return f"{minutes:02}:{secs:02}"
+
+
+def _speaker_transcript(segments: list[dict[str, Any]]) -> str:
+    lines = []
+    for segment in segments:
+        lines.append(
+            f"[{_timestamp_vtt(float(segment['start']))}] {segment.get('speaker', 'Спикер 1')}: {segment['text']}"
+        )
+    return "\n".join(lines)
 
 
 def _srt(transcript: dict[str, Any]) -> str:
@@ -178,7 +221,7 @@ def _srt(transcript: dict[str, Any]) -> str:
                 [
                     str(index),
                     f"{_timestamp_srt(segment['start'])} --> {_timestamp_srt(segment['end'])}",
-                    segment["text"],
+                    f"{segment.get('speaker', 'Спикер 1')}: {segment['text']}",
                 ]
             )
         )
@@ -192,7 +235,7 @@ def _vtt(transcript: dict[str, Any]) -> str:
             "\n".join(
                 [
                     f"{_timestamp_vtt(segment['start'])} --> {_timestamp_vtt(segment['end'])}",
-                    segment["text"],
+                    f"{segment.get('speaker', 'Спикер 1')}: {segment['text']}",
                 ]
             )
         )
@@ -202,21 +245,22 @@ def _vtt(transcript: dict[str, Any]) -> str:
 def _write_docx(path: Path, payload: dict[str, Any]) -> None:
     document = Document()
     document.add_heading(payload["title"], level=0)
-    document.add_paragraph(f"Task ID: {payload['task_id']}")
-    document.add_paragraph(f"Processing date/time: {payload['processed_at']}")
-    document.add_paragraph(f"Detected language: {payload['detected_language']}")
+    document.add_paragraph(f"Номер задачи: {payload['task_id']}")
+    document.add_paragraph(f"Время начала записи: {payload['recording_started_at']}")
+    document.add_paragraph(f"Длительность записи: {payload['recording_duration']}")
+    document.add_paragraph(f"Количество спикеров: {payload['speaker_count']}")
+    document.add_paragraph(f"Обработано: {payload['processed_at']}")
+    document.add_paragraph(f"Определённый язык: {payload['detected_language']}")
 
     for title, key in [
-        ("Original transcript", "original_transcript"),
-        ("Kazakh translation", "kazakh_translation"),
-        ("Short summary", "short_summary"),
-        ("Detailed summary", "detailed_summary"),
-        ("Key points", "key_points"),
-        ("Decisions", "decisions"),
-        ("Action items", "action_items"),
-        ("Participants or speakers", "participants_or_speakers"),
-        ("Risks or open questions", "risks_or_open_questions"),
-        ("Final notes", "final_notes"),
+        ("Полная расшифровка по спикерам", "speaker_transcript"),
+        ("Основной полный конспект", "detailed_summary"),
+        ("Краткое резюме", "short_summary"),
+        ("Ключевые пункты", "key_points"),
+        ("Решения", "decisions"),
+        ("Задачи", "action_items"),
+        ("Казахская версия", "kazakh_translation"),
+        ("Финальные заметки", "final_notes"),
     ]:
         document.add_heading(title, level=1)
         value = payload[key]
@@ -268,23 +312,24 @@ def _write_pdf(path: Path, payload: dict[str, Any]) -> None:
     )
     story = [
         Paragraph(escape(payload["title"]), title),
-        Paragraph(escape(f"Task ID: {payload['task_id']}"), normal),
-        Paragraph(escape(f"Processing date/time: {payload['processed_at']}"), normal),
-        Paragraph(escape(f"Detected language: {payload['detected_language']}"), normal),
+        Paragraph(escape(f"Номер задачи: {payload['task_id']}"), normal),
+        Paragraph(escape(f"Время начала записи: {payload['recording_started_at']}"), normal),
+        Paragraph(escape(f"Длительность записи: {payload['recording_duration']}"), normal),
+        Paragraph(escape(f"Количество спикеров: {payload['speaker_count']}"), normal),
+        Paragraph(escape(f"Обработано: {payload['processed_at']}"), normal),
+        Paragraph(escape(f"Определённый язык: {payload['detected_language']}"), normal),
         Spacer(1, 8),
     ]
 
     for section_title, key in [
-        ("Original transcript", "original_transcript"),
-        ("Kazakh translation", "kazakh_translation"),
-        ("Short summary", "short_summary"),
-        ("Detailed summary", "detailed_summary"),
-        ("Key points", "key_points"),
-        ("Decisions", "decisions"),
-        ("Action items", "action_items"),
-        ("Participants or speakers", "participants_or_speakers"),
-        ("Risks or open questions", "risks_or_open_questions"),
-        ("Final notes", "final_notes"),
+        ("Полная расшифровка по спикерам", "speaker_transcript"),
+        ("Основной полный конспект", "detailed_summary"),
+        ("Краткое резюме", "short_summary"),
+        ("Ключевые пункты", "key_points"),
+        ("Решения", "decisions"),
+        ("Задачи", "action_items"),
+        ("Казахская версия", "kazakh_translation"),
+        ("Финальные заметки", "final_notes"),
     ]:
         story.append(Paragraph(escape(section_title), heading))
         text = _text(payload[key]).strip() or "Not available."
@@ -301,10 +346,11 @@ def generate_documents(
     transcript: dict[str, Any],
     translation: dict[str, Any],
     summary: dict[str, Any],
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Path]:
     try:
         output_dir.mkdir(parents=True, exist_ok=True)
-        payload = _build_payload(task_id, detected_language, transcript, translation, summary)
+        payload = _build_payload(task_id, detected_language, transcript, translation, summary, metadata)
 
         paths = {
             "txt": output_dir / "qazscribe_result.txt",
@@ -327,6 +373,7 @@ def generate_documents(
                     "transcript": transcript,
                     "translation": translation,
                     "summary": summary,
+                    "metadata": metadata or {},
                 },
                 ensure_ascii=False,
                 indent=2,

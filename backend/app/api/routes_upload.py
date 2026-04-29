@@ -12,7 +12,7 @@ from backend.app.services.audio_service import AudioConversionError, convert_to_
 from backend.app.services.document_service import DocumentGenerationError, generate_documents
 from backend.app.services.summary_service import generate_structured_notes
 from backend.app.services.translation_service import translate_to_kazakh
-from backend.app.storage.task_store import create_task, update_task
+from backend.app.storage.task_store import create_task, get_task, update_task
 
 
 router = APIRouter(prefix="/api", tags=["upload"])
@@ -35,6 +35,33 @@ def _safe_filename(filename: str) -> str:
     suffix = Path(raw_name).suffix.lower()
     safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("._")
     return f"{safe_stem or 'audio'}{suffix}"
+
+
+def _format_speaker_preview(transcription_dict: dict) -> str:
+    lines = []
+    for segment in transcription_dict.get("segments") or []:
+        speaker = segment.get("speaker") or "Спикер 1"
+        start = float(segment.get("start") or 0)
+        text = str(segment.get("text") or "").strip()
+        if text:
+            lines.append(f"[{start:06.2f}] {speaker}: {text}")
+    return "\n".join(lines)
+
+
+def _duration_seconds(transcription_dict: dict) -> float:
+    segments = transcription_dict.get("segments") or []
+    if not segments:
+        return 0.0
+    return max(float(segment.get("end") or 0) for segment in segments)
+
+
+def _speaker_count(transcription_dict: dict) -> int:
+    speakers = {
+        str(segment.get("speaker") or "Спикер 1")
+        for segment in transcription_dict.get("segments") or []
+        if str(segment.get("text") or "").strip()
+    }
+    return len(speakers) if speakers else 0
 
 
 def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
@@ -61,8 +88,12 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             error="",
         )
         transcription = transcribe_audio(converted_path, settings)
+        transcription_dict = transcription.to_dict()
+        speaker_preview = _format_speaker_preview(transcription_dict)
+        duration_seconds = _duration_seconds(transcription_dict)
+        speaker_count = _speaker_count(transcription_dict)
         transcript_path.write_text(
-            json.dumps(transcription.to_dict(), ensure_ascii=False, indent=2),
+            json.dumps(transcription_dict, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         update_task(
@@ -73,6 +104,9 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             transcript_path=_stored_path(transcript_path),
             detected_language=transcription.detected_language,
             transcript_preview=transcription.full_transcript[:1200],
+            speaker_preview=speaker_preview[:1600],
+            recording_duration_seconds=duration_seconds,
+            speaker_count=speaker_count,
             error="",
         )
         translation = translate_to_kazakh(transcription.full_transcript, settings)
@@ -92,7 +126,7 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
         )
         notes = generate_structured_notes(
             transcription.full_transcript,
-            translation.translated_text,
+            "" if translation.fallback_used else translation.translated_text,
             transcription.detected_language,
             settings,
         )
@@ -109,15 +143,22 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             result_available=True,
             summary_path=_stored_path(summary_path),
             summary_preview=notes.short_summary[:1200],
+            detailed_summary_preview=notes.detailed_summary[:2000],
             error="",
         )
+        task = get_task(task_id) or {}
         document_paths = generate_documents(
             task_id,
             settings.outputs_path / task_id,
             transcription.detected_language,
-            transcription.to_dict(),
+            transcription_dict,
             translation.to_dict(),
             notes.to_dict(),
+            {
+                "recording_started_at": task.get("created_at"),
+                "recording_duration_seconds": duration_seconds,
+                "speaker_count": speaker_count,
+            },
         )
         downloads = {
             file_format: f"/api/download/{task_id}/{file_format}"

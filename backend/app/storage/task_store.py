@@ -10,6 +10,7 @@ _lock = Lock()
 
 
 def create_task(task_id: str, filename: str, stored_path: str) -> dict[str, Any]:
+    now = datetime.now(UTC).isoformat()
     task = {
         "task_id": task_id,
         "status": "queued",
@@ -26,10 +27,15 @@ def create_task(task_id: str, filename: str, stored_path: str) -> dict[str, Any]
         "transcript_preview": None,
         "translation_preview": None,
         "summary_preview": None,
+        "detailed_summary_preview": None,
+        "speaker_preview": None,
+        "recording_started_at": now,
+        "recording_duration_seconds": None,
+        "speaker_count": None,
         "error": None,
         "downloads": None,
-        "created_at": datetime.now(UTC).isoformat(),
-        "updated_at": datetime.now(UTC).isoformat(),
+        "created_at": now,
+        "updated_at": now,
     }
 
     with _lock:
@@ -61,6 +67,11 @@ def update_task(
     transcript_preview: str | None = None,
     translation_preview: str | None = None,
     summary_preview: str | None = None,
+    detailed_summary_preview: str | None = None,
+    speaker_preview: str | None = None,
+    recording_started_at: str | None = None,
+    recording_duration_seconds: float | None = None,
+    speaker_count: int | None = None,
 ) -> dict[str, Any] | None:
     with _lock:
         task = _tasks.get(task_id)
@@ -95,6 +106,16 @@ def update_task(
             task["translation_preview"] = translation_preview
         if summary_preview is not None:
             task["summary_preview"] = summary_preview
+        if detailed_summary_preview is not None:
+            task["detailed_summary_preview"] = detailed_summary_preview
+        if speaker_preview is not None:
+            task["speaker_preview"] = speaker_preview
+        if recording_started_at is not None:
+            task["recording_started_at"] = recording_started_at
+        if recording_duration_seconds is not None:
+            task["recording_duration_seconds"] = recording_duration_seconds
+        if speaker_count is not None:
+            task["speaker_count"] = speaker_count
 
         task["updated_at"] = datetime.now(UTC).isoformat()
         return task.copy()

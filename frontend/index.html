@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>QazScribe</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20260429-ui2" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260429-ui3" />
   </head>
   <body>
     <header class="app-bar">
@@ -189,6 +189,14 @@
               <span class="status-label">Готовность</span>
               <strong id="task-progress">0%</strong>
             </div>
+            <div>
+              <span class="status-label">Длительность</span>
+              <strong id="task-duration">Пока нет</strong>
+            </div>
+            <div>
+              <span class="status-label">Спикеры</span>
+              <strong id="task-speakers">Пока нет</strong>
+            </div>
           </div>
         </section>
 
@@ -201,14 +209,24 @@
           <textarea id="transcript-preview">Текст появится после обработки Whisper.</textarea>
         </section>
 
+        <section class="panel" aria-labelledby="speakers-title">
+          <h2 id="speakers-title">Полная расшифровка по спикерам</h2>
+          <textarea id="speaker-preview">Спикеры появятся после обработки.</textarea>
+        </section>
+
         <section class="panel" aria-labelledby="translation-title">
           <h2 id="translation-title">Казахская версия</h2>
           <textarea id="translation-preview">Перевод появится после обработки.</textarea>
         </section>
 
+        <section class="panel" aria-labelledby="notes-title">
+          <h2 id="notes-title">Основной полный конспект</h2>
+          <textarea id="detailed-summary-preview">Конспект появится после обработки.</textarea>
+        </section>
+
         <section class="panel" aria-labelledby="summary-title">
-          <h2 id="summary-title">Краткое резюме и структура</h2>
-          <textarea id="summary-preview">Резюме появится после обработки.</textarea>
+          <h2 id="summary-title">Краткое резюме</h2>
+          <textarea id="summary-preview">Краткое резюме появится после обработки.</textarea>
         </section>
 
         <section class="panel" aria-labelledby="downloads-title">
@@ -264,6 +282,6 @@
       </section>
     </main>
 
-    <script src="/static/app.js?v=20260429-ui2"></script>
+    <script src="/static/app.js?v=20260429-ui3"></script>
   </body>
 </html>

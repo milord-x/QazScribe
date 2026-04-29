@@ -27,6 +27,11 @@ class TaskResponse(BaseModel):
     transcript_preview: str | None = None
     translation_preview: str | None = None
     summary_preview: str | None = None
+    detailed_summary_preview: str | None = None
+    speaker_preview: str | None = None
+    recording_started_at: str | None = None
+    recording_duration_seconds: float | None = None
+    speaker_count: int | None = None
     error: str | None = None
     downloads: dict[str, str] | None = None
 

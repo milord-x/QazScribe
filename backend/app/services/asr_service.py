@@ -15,6 +15,7 @@ class TranscriptionSegment:
     start: float
     end: float
     text: str
+    speaker: str = "Спикер 1"
 
 
 @dataclass
@@ -33,6 +34,19 @@ class TranscriptionResult:
 _model = None
 _model_key: tuple[str, str, str] | None = None
 _model_lock = Lock()
+
+
+def _assign_speakers(segments: list[TranscriptionSegment]) -> list[TranscriptionSegment]:
+    speaker_index = 1
+    previous_end = None
+
+    for segment in segments:
+        if previous_end is not None and segment.start - previous_end >= 1.8:
+            speaker_index = 2 if speaker_index == 1 else 1
+        segment.speaker = f"Спикер {speaker_index}"
+        previous_end = segment.end
+
+    return segments
 
 
 def _load_model(settings: Settings):
@@ -92,6 +106,7 @@ def transcribe_audio(audio_path: Path, settings: Settings) -> TranscriptionResul
             for segment in segments_iter
             if segment.text.strip()
         ]
+        segments = _assign_speakers(segments)
     except Exception as exc:
         raise ASRError(f"Whisper transcription failed: {exc}") from exc
 
