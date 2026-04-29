@@ -50,7 +50,7 @@ app = FastAPI(
 @app.middleware("http")
 async def prevent_frontend_cache(request, call_next):
     response = await call_next(request)
-    if request.url.path == "/" or request.url.path.startswith("/static/"):
+    if request.url.path in {"/", "/logo.png", "/favicon.ico"} or request.url.path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -72,6 +72,22 @@ def index() -> FileResponse:
     if not index_file.exists():
         raise HTTPException(status_code=404, detail="Frontend index.html not found")
     return FileResponse(index_file)
+
+
+@app.get("/logo.png")
+def logo() -> FileResponse:
+    logo_file = settings.project_root / "logo.png"
+    if not logo_file.exists():
+        raise HTTPException(status_code=404, detail="Logo not found")
+    return FileResponse(logo_file, media_type="image/png")
+
+
+@app.get("/favicon.ico")
+def favicon() -> FileResponse:
+    logo_file = settings.project_root / "logo.png"
+    if not logo_file.exists():
+        raise HTTPException(status_code=404, detail="Favicon not found")
+    return FileResponse(logo_file, media_type="image/png")
 
 
 @app.get("/api/health")
