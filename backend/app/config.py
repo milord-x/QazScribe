@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     asr_model_size: str = Field(default="small", alias="ASR_MODEL_SIZE")
     asr_device: str = Field(default="cpu", alias="ASR_DEVICE")
     asr_compute_type: str = Field(default="int8", alias="ASR_COMPUTE_TYPE")
+    asr_fake_transcript: str | None = Field(default=None, alias="ASR_FAKE_TRANSCRIPT")
     llm_provider: str = Field(default="none", alias="LLM_PROVIDER")
     llm_api_base_url: str | None = Field(default=None, alias="LLM_API_BASE_URL")
     llm_api_key: str | None = Field(default=None, alias="LLM_API_KEY")

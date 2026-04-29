@@ -66,6 +66,15 @@ def transcribe_audio(audio_path: Path, settings: Settings) -> TranscriptionResul
     if not audio_path.exists():
         raise ASRError("Converted audio file does not exist")
 
+    if settings.asr_fake_transcript:
+        text = settings.asr_fake_transcript.strip()
+        return TranscriptionResult(
+            detected_language="dev",
+            language_probability=1.0,
+            full_transcript=text,
+            segments=[TranscriptionSegment(start=0.0, end=1.0, text=text)],
+        )
+
     model = _load_model(settings)
 
     try:

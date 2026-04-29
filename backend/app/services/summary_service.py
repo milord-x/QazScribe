@@ -76,8 +76,8 @@ def _fallback_notes(
         participants_or_speakers=[],
         risks_or_open_questions=[],
         final_notes=(
-            "Структура подготовлена в fallback-режиме. Для качественного казахского "
-            "резюме, решений и задач подключите LLM-провайдер."
+            "Структура подготовлена локально без платного API. Решения, задачи и "
+            "участники не выделялись автоматически."
         ),
         provider="fallback",
         fallback_used=True,

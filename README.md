@@ -31,7 +31,7 @@ pip install -r backend/requirements.txt
 # Required for audio conversion
 sudo apt install -y ffmpeg
 
-uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+./scripts/run_local_dev.sh
 ```
 
 Then open:
@@ -67,14 +67,25 @@ GET http://127.0.0.1:8000/api/download/{task_id}/docx
 GET http://127.0.0.1:8000/api/download/{task_id}/pdf
 ```
 
-For the first local Whisper test, use a small model setting:
+The local dev script uses `ASR_FAKE_TRANSCRIPT` by default. This means upload,
+progress, fallback notes, and document downloads can be tested quickly without
+downloading a Whisper model and without paid API keys.
+
+Run the HTTP smoke test while the local server is running:
 
 ```bash
-ASR_MODEL_SIZE=tiny ASR_DEVICE=cpu ASR_COMPUTE_TYPE=int8 \
+./scripts/smoke_upload.py
+```
+
+For a real local Whisper test, disable fake ASR and use a small CPU model:
+
+```bash
+ASR_FAKE_TRANSCRIPT= ASR_MODEL_SIZE=tiny ASR_DEVICE=cpu ASR_COMPUTE_TYPE=int8 \
 uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-External translation and structuring can be configured with an OpenAI-compatible chat completions endpoint:
+External translation and structuring are optional. They can be configured with an
+OpenAI-compatible chat completions endpoint:
 
 ```text
 LLM_PROVIDER=openai_compatible
@@ -83,7 +94,8 @@ LLM_API_KEY=your_key_here
 LLM_MODEL=your_model_name
 ```
 
-Without those values, QazScribe runs in fallback mode and clearly marks translation as unavailable.
+Without those values, QazScribe runs in free fallback mode and still generates
+result documents.
 
 Runtime files are temporary. Uploads and processed audio are deleted after `UPLOAD_RETENTION_HOURS`; generated documents are deleted after `OUTPUT_RETENTION_HOURS`. Cleanup runs on startup and in a background loop.
 
