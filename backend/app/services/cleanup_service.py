@@ -28,7 +28,7 @@ def _is_safe_child(path: Path, parent: Path) -> bool:
     return resolved_path != resolved_parent and resolved_parent in resolved_path.parents
 
 
-def _delete_expired_children(directory: Path, data_root: Path, retention: timedelta) -> int:
+def _delete_expired_children(directory: Path, retention: timedelta) -> int:
     directory.mkdir(parents=True, exist_ok=True)
     cutoff = datetime.now().timestamp() - retention.total_seconds()
     deleted = 0
@@ -36,7 +36,7 @@ def _delete_expired_children(directory: Path, data_root: Path, retention: timede
     for child in directory.iterdir():
         if child.name == ".gitkeep":
             continue
-        if not _is_safe_child(child, data_root):
+        if not _is_safe_child(child, directory):
             raise CleanupError(f"Refusing to delete unsafe path: {child}")
         try:
             child_mtime = child.stat().st_mtime
@@ -56,8 +56,7 @@ def _delete_expired_children(directory: Path, data_root: Path, retention: timede
 
 
 def run_cleanup(settings: Settings) -> CleanupReport:
-    data_root = settings.data_path.resolve()
-    data_root.mkdir(parents=True, exist_ok=True)
+    settings.data_path.mkdir(parents=True, exist_ok=True)
 
     report = CleanupReport()
     upload_retention = timedelta(hours=settings.upload_retention_hours)
@@ -65,17 +64,14 @@ def run_cleanup(settings: Settings) -> CleanupReport:
 
     report.deleted_uploads = _delete_expired_children(
         settings.uploads_path,
-        data_root,
         upload_retention,
     )
     report.deleted_processed = _delete_expired_children(
         settings.processed_path,
-        data_root,
         upload_retention,
     )
     report.deleted_outputs = _delete_expired_children(
         settings.outputs_path,
-        data_root,
         output_retention,
     )
     return report
