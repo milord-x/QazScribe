@@ -43,6 +43,7 @@ let speechRecognition = null;
 let speechFinalText = "";
 
 const MIC_STORAGE_KEY = "qazscribe.selectedMicrophoneId";
+const MIC_PERMISSION_STORAGE_KEY = "qazscribe.microphonePermissionGranted";
 
 const statusLabels = {
   queued: "В очереди",
@@ -365,6 +366,10 @@ function saveSelectedMic(deviceId) {
   }
 }
 
+function rememberMicPermissionGranted() {
+  localStorage.setItem(MIC_PERMISSION_STORAGE_KEY, "true");
+}
+
 function syncMicSelects(deviceId) {
   [micSelect, settingsMicSelect].forEach((select) => {
     if (select.value !== deviceId) {
@@ -406,7 +411,10 @@ async function loadMicrophones() {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
     renderMicOptions(devices);
-    micHelpEl.textContent = "Выбранный микрофон сохранится в этом браузере.";
+    const permissionWasGranted = localStorage.getItem(MIC_PERMISSION_STORAGE_KEY) === "true";
+    micHelpEl.textContent = permissionWasGranted
+      ? "Микрофон выбран. Если браузер снова спрашивает доступ, это ограничение браузера."
+      : "Выбранный микрофон сохранится в этом браузере.";
   } catch (error) {
     micHelpEl.textContent = `Не удалось получить список микрофонов: ${error.message}`;
   }
@@ -420,10 +428,30 @@ async function requestMicrophoneAccess() {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    rememberMicPermissionGranted();
     stream.getTracks().forEach((track) => track.stop());
     await loadMicrophones();
   } catch (error) {
     micHelpEl.textContent = `Доступ к микрофону не получен: ${error.message}`;
+  }
+}
+
+async function getMicrophoneStream(deviceId) {
+  if (!deviceId) {
+    return navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: { deviceId: { exact: deviceId } },
+    });
+  } catch (error) {
+    if (error.name !== "OverconstrainedError" && error.name !== "NotFoundError") {
+      throw error;
+    }
+    saveSelectedMic("");
+    syncMicSelects("");
+    return navigator.mediaDevices.getUserMedia({ audio: true });
   }
 }
 
@@ -513,8 +541,8 @@ async function startRecording() {
     recordPreview.removeAttribute("src");
 
     const deviceId = selectedMicId();
-    const audio = deviceId ? { deviceId: { exact: deviceId } } : true;
-    recordingStream = await navigator.mediaDevices.getUserMedia({ audio });
+    recordingStream = await getMicrophoneStream(deviceId);
+    rememberMicPermissionGranted();
     mediaRecorder = new MediaRecorder(recordingStream, getRecorderOptions());
 
     mediaRecorder.addEventListener("dataavailable", (event) => {

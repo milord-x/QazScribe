@@ -24,9 +24,8 @@ class TranslationResult:
 
 def _provider_configured(settings: Settings) -> bool:
     return bool(
-        settings.llm_provider == "openai_compatible"
+        settings.llm_provider in {"openai_compatible", "ollama"}
         and settings.llm_api_base_url
-        and settings.llm_api_key
         and settings.llm_model
     )
 
@@ -36,10 +35,9 @@ def _chat_completion(settings: Settings, system_prompt: str, user_prompt: str) -
         raise TranslationError("No LLM provider is configured")
 
     url = settings.llm_api_base_url.rstrip("/") + "/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {settings.llm_api_key}",
-        "Content-Type": "application/json",
-    }
+    headers = {"Content-Type": "application/json"}
+    if settings.llm_api_key:
+        headers["Authorization"] = f"Bearer {settings.llm_api_key}"
     payload = {
         "model": settings.llm_model,
         "messages": [

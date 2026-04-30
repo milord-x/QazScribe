@@ -94,8 +94,10 @@ def transcribe_audio(audio_path: Path, settings: Settings) -> TranscriptionResul
     try:
         segments_iter, info = model.transcribe(
             str(audio_path),
-            beam_size=5,
-            vad_filter=False,
+            beam_size=settings.asr_beam_size,
+            vad_filter=settings.asr_vad_filter,
+            language=settings.asr_language or None,
+            initial_prompt=settings.asr_initial_prompt or None,
         )
         segments = [
             TranscriptionSegment(

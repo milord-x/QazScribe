@@ -161,6 +161,10 @@ QAZSCRIBE_TMP_DIR=/media/proart/ssd/qazscribe/tmp
 ASR_MODEL_SIZE=large-v3
 ASR_DEVICE=cuda
 ASR_COMPUTE_TYPE=float16
+ASR_LANGUAGE=
+ASR_BEAM_SIZE=5
+ASR_VAD_FILTER=true
+ASR_INITIAL_PROMPT=Это запись лекции, конференции или заседания. Речь может быть на русском и казахском языке. Сохраняй имена, термины, числа и смысл фраз точно.
 ```
 
 For the first public demo, `ASR_MODEL_SIZE=small` or `medium` starts faster and
@@ -168,6 +172,16 @@ uses less VRAM. Switch back to `large-v3` when the pipeline is stable.
 
 The Docker image installs the CUDA 12 cuBLAS and cuDNN libraries required by
 `faster-whisper` GPU inference.
+
+For local translation and notes without paid API keys, run an OpenAI-compatible
+local model server such as Ollama on the host and set:
+
+```text
+LLM_PROVIDER=ollama
+LLM_API_BASE_URL=http://host.docker.internal:11434/v1
+LLM_API_KEY=
+LLM_MODEL=qwen2.5:7b
+```
 
 Model cache variables for the server:
 
