@@ -159,12 +159,17 @@ QAZSCRIBE_LOGS_DIR=/media/proart/ssd/qazscribe/logs
 QAZSCRIBE_TMP_DIR=/media/proart/ssd/qazscribe/tmp
 
 ASR_MODEL_SIZE=large-v3
+ASR_BACKEND=faster_whisper
+ASR_MODEL_ID=
 ASR_DEVICE=cuda
 ASR_COMPUTE_TYPE=float16
 ASR_LANGUAGE=
 ASR_BEAM_SIZE=5
 ASR_VAD_FILTER=true
 ASR_INITIAL_PROMPT=Это запись лекции, конференции или заседания. Речь может быть на русском и казахском языке. Сохраняй имена, термины, числа и смысл фраз точно.
+ASR_TRANSFORMERS_LANGUAGE=
+ASR_TRUST_REMOTE_CODE=false
+ASR_CHUNK_LENGTH_SECONDS=30
 ```
 
 For the first public demo, `ASR_MODEL_SIZE=small` or `medium` starts faster and
@@ -172,6 +177,26 @@ uses less VRAM. Switch back to `large-v3` when the pipeline is stable.
 
 The Docker image installs the CUDA 12 cuBLAS and cuDNN libraries required by
 `faster-whisper` GPU inference.
+
+QazScribe can also run experimental Hugging Face ASR models through
+`transformers`:
+
+```text
+# Kyrgyz / Russian / English Whisper model
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=nineninesix/kyrgyz-whisper-medium
+ASR_TRANSFORMERS_LANGUAGE=kyrgyz
+ASR_TRUST_REMOTE_CODE=true
+
+# Kyrgyz Wav2Vec2 CTC model
+ASR_BACKEND=wav2vec2_ctc
+ASR_MODEL_ID=kyrgyz-ai/Wav2vec-Kyrgyz
+ASR_TRUST_REMOTE_CODE=false
+```
+
+The Whisper-based Kyrgyz model is better suited for multilingual speech and
+longer recordings. The Wav2Vec2 model is Kyrgyz-only and should be treated as an
+experimental comparison model.
 
 For local translation and notes without paid API keys, run an OpenAI-compatible
 local model server such as Ollama on the host and set:

@@ -13,9 +13,11 @@ RUN apt-get update \
 
 COPY backend/requirements.txt /app/backend/requirements.txt
 COPY backend/requirements-gpu.txt /app/backend/requirements-gpu.txt
+COPY backend/requirements-hf-asr.txt /app/backend/requirements-hf-asr.txt
 RUN pip install --upgrade pip \
     && pip install -r /app/backend/requirements.txt \
-    && pip install -r /app/backend/requirements-gpu.txt
+    && pip install -r /app/backend/requirements-gpu.txt \
+    && pip install -r /app/backend/requirements-hf-asr.txt
 
 COPY . /app
 

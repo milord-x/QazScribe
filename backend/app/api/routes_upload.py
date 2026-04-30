@@ -83,7 +83,7 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             task_id,
             status="transcribing",
             progress=55,
-            message="Transcribing audio with Whisper",
+            message=f"Transcribing audio with {settings.asr_backend}",
             processed_path=_stored_path(converted_path),
             error="",
         )
@@ -186,7 +186,7 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             task_id,
             status="failed",
             progress=100,
-            message="Whisper transcription failed",
+            message="Speech transcription failed",
             error=str(exc),
         )
     except DocumentGenerationError as exc:

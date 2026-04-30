@@ -62,7 +62,7 @@ const statusLabels = {
 const statusMessages = {
   queued: "Файл принят. Задача ожидает обработки.",
   converting_audio: "Приводим аудио к формату mono 16 kHz WAV.",
-  transcribing: "Whisper распознаёт речь.",
+  transcribing: "Модель распознаёт речь.",
   translating: "Готовим казахскую версию текста.",
   summarizing: "Собираем краткое резюме и структуру.",
   generating_documents: "Формируем документы.",
