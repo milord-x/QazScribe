@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>QazScribe</title>
     <link rel="icon" type="image/png" href="/logo.png?v=20260429-logo" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260430-cis1" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260430-final1" />
   </head>
   <body>
     <header class="app-bar">
@@ -25,14 +25,20 @@
         <button type="button" class="nav-tab" data-screen-target="results">Результат</button>
         <button type="button" class="nav-tab" data-screen-target="settings">Настройки</button>
       </nav>
-      <p id="health-status" class="health-pill">Проверяю сервер...</p>
+      <div class="app-actions">
+        <label class="site-language-label" for="site-language-select">
+          <span>Язык сайта</span>
+          <select id="site-language-select" aria-label="Язык сайта"></select>
+        </label>
+        <p id="health-status" class="health-pill">Проверяю сервер...</p>
+      </div>
     </header>
 
     <main class="page-shell">
       <section class="screen active" id="screen-welcome">
         <div class="hero">
           <div>
-            <p class="eyebrow">Локальная транскрибация без платных API</p>
+            <p class="eyebrow">Локальная транскрибация для деловых задач</p>
             <h1>Запишите речь или загрузите аудио</h1>
             <p class="hero-copy">
               QazScribe помогает получить текст, казахскую версию, краткую структуру
@@ -114,12 +120,12 @@
           </div>
 
           <div class="field-grid">
-            <label>
-              Микрофон
+            <label class="mic-select-label">
+              <span>Микрофон</span>
               <select id="mic-select"></select>
             </label>
-            <label>
-              Язык речи
+            <label class="speech-language-label">
+              <span>Язык речи</span>
               <select id="language-select"></select>
             </label>
             <button type="button" class="secondary-button" id="refresh-mics">Обновить список</button>
@@ -274,12 +280,12 @@
               Разрешить доступ
             </button>
           </div>
-          <label>
-            Активный микрофон
+          <label class="settings-mic-label">
+            <span>Активный микрофон</span>
             <select id="settings-mic-select"></select>
           </label>
-          <label>
-            Язык черновых субтитров
+          <label class="settings-language-label">
+            <span>Язык черновых субтитров</span>
             <select id="settings-language-select"></select>
           </label>
           <p id="mic-help" class="muted">
@@ -299,8 +305,8 @@
               <strong>RU, KZ, KY, UZ, TT, TG, AZ, TK, BE, UK</strong>
             </div>
             <div>
-              <span class="status-label">Платные API</span>
-              <strong>Не обязательны</strong>
+              <span class="status-label">Режим работы</span>
+              <strong>Локальная обработка на сервере организации</strong>
             </div>
             <div>
               <span class="status-label">Экспорт</span>
@@ -311,6 +317,6 @@
       </section>
     </main>
 
-    <script src="/static/app.js?v=20260430-cis1"></script>
+    <script src="/static/app.js?v=20260430-final1"></script>
   </body>
 </html>

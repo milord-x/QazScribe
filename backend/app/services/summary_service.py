@@ -80,7 +80,7 @@ def _fallback_notes(
         participants_or_speakers=[],
         risks_or_open_questions=[],
         final_notes=(
-            "Структура подготовлена локально без платного API. Решения, задачи и "
+            "Структура подготовлена локально без внешнего LLM-сервиса. Решения, задачи и "
             "участники не выделялись автоматически."
         ),
         provider="fallback",

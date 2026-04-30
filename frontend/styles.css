@@ -134,6 +134,29 @@ textarea {
   justify-self: end;
 }
 
+.app-actions {
+  display: inline-flex;
+  justify-self: end;
+  align-items: center;
+  gap: 10px;
+}
+
+.site-language-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.site-language-label select {
+  width: auto;
+  min-height: 34px;
+  padding: 6px 28px 6px 10px;
+}
+
 .page-shell {
   width: min(1080px, calc(100% - 32px));
   margin: 0 auto;
@@ -387,6 +410,25 @@ button:hover:not(:disabled),
   background: var(--accent-dark);
 }
 
+.nav-tab,
+.mode-tab {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.nav-tab:hover:not(:disabled),
+.mode-tab:hover:not(:disabled) {
+  background: #eef4f2;
+  color: var(--accent-dark);
+}
+
+.nav-tab.active,
+.mode-tab.active {
+  background: var(--surface);
+  color: var(--accent-dark);
+}
+
 .secondary-button {
   border-color: var(--line);
   background: #fff;
@@ -568,6 +610,11 @@ textarea {
 
   .health-pill {
     justify-self: start;
+  }
+
+  .app-actions {
+    justify-self: stretch;
+    justify-content: space-between;
   }
 
   .nav-tabs {

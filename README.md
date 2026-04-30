@@ -14,9 +14,17 @@ This repository currently contains a runnable FastAPI backend, static frontend, 
 backend/     FastAPI application
 frontend/    Static HTML, CSS, and JavaScript
 deploy/      Ubuntu, systemd, and nginx deployment files
+docs/        Architecture, model, deployment, and evaluation notes
 scripts/     Server initialization and health check helpers
 data/        Local runtime storage, ignored by git
 ```
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Speech and Language Models](docs/MODELS.md)
+- [Deployment Notes](docs/DEPLOYMENT.md)
+- [Evaluation Plan](docs/EVALUATION.md)
 
 ## Local Development
 
@@ -69,7 +77,7 @@ GET http://127.0.0.1:8000/api/download/{task_id}/pdf
 
 The local dev script uses `ASR_FAKE_TRANSCRIPT` by default. This means upload,
 progress, fallback notes, and document downloads can be tested quickly without
-downloading a Whisper model and without paid API keys.
+downloading a Whisper model or connecting an external LLM service.
 
 Run the HTTP smoke test while the local server is running:
 
@@ -94,7 +102,7 @@ LLM_API_KEY=your_key_here
 LLM_MODEL=your_model_name
 ```
 
-Without those values, QazScribe runs in free fallback mode and still generates
+Without those values, QazScribe runs in local fallback mode and still generates
 result documents.
 
 Runtime files are temporary. Uploads and processed audio are deleted after `UPLOAD_RETENTION_HOURS`; generated documents are deleted after `OUTPUT_RETENTION_HOURS`. Cleanup runs on startup and in a background loop.
@@ -166,7 +174,7 @@ ASR_COMPUTE_TYPE=float16
 ASR_LANGUAGE=
 ASR_BEAM_SIZE=5
 ASR_VAD_FILTER=true
-ASR_INITIAL_PROMPT=Это запись лекции, конференции или заседания. Речь может быть на русском и казахском языке. Сохраняй имена, термины, числа и смысл фраз точно.
+ASR_INITIAL_PROMPT=Это запись лекции, конференции или заседания. Речь может быть на русском, казахском, кыргызском, узбекском, татарском, таджикском, азербайджанском, туркменском, белорусском или украинском языке. Сохраняй имена, термины, числа и смысл фраз точно.
 ASR_TRANSFORMERS_LANGUAGE=
 ASR_TRUST_REMOTE_CODE=false
 ASR_CHUNK_LENGTH_SECONDS=30
@@ -203,7 +211,7 @@ languages: Russian, Kazakh, Kyrgyz, Uzbek, Tatar, Tajik, Azerbaijani, Turkmen,
 Belarusian, and Ukrainian. Final transcription quality depends on the selected
 server ASR backend and model.
 
-For local translation and notes without paid API keys, run an OpenAI-compatible
+For local translation and notes without external cloud services, run an OpenAI-compatible
 local model server such as Ollama on the host and set:
 
 ```text

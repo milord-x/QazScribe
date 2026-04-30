@@ -64,7 +64,7 @@ def _chat_completion(settings: Settings, system_prompt: str, user_prompt: str) -
 def _fallback_translation(text: str, error: str | None = None) -> TranslationResult:
     if text.strip():
         translated_text = (
-            "Казахский перевод отключен в бесплатном локальном режиме. "
+            "Казахский перевод отключен в локальном режиме без внешнего LLM-сервиса. "
             "Ниже сохранен исходный распознанный текст.\n\n"
             f"{text.strip()}"
         )
