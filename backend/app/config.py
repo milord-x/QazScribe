@@ -10,6 +10,19 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = BACKEND_DIR.parent
 load_dotenv(BACKEND_DIR / ".env")
 
+SUPPORTED_SPEECH_LANGUAGES = [
+    {"code": "ru", "browser_code": "ru-RU", "name": "Русский"},
+    {"code": "kk", "browser_code": "kk-KZ", "name": "Қазақша"},
+    {"code": "ky", "browser_code": "ky-KG", "name": "Кыргызча"},
+    {"code": "uz", "browser_code": "uz-UZ", "name": "O'zbekcha"},
+    {"code": "tt", "browser_code": "tt-RU", "name": "Татарча"},
+    {"code": "tg", "browser_code": "tg-TJ", "name": "Тоҷикӣ"},
+    {"code": "az", "browser_code": "az-AZ", "name": "Azərbaycanca"},
+    {"code": "tk", "browser_code": "tk-TM", "name": "Türkmençe"},
+    {"code": "be", "browser_code": "be-BY", "name": "Беларуская"},
+    {"code": "uk", "browser_code": "uk-UA", "name": "Українська"},
+]
+
 
 class Settings(BaseSettings):
     app_name: str = Field(default="QazScribe Conference AI Notes", alias="APP_NAME")

@@ -198,6 +198,11 @@ The Whisper-based Kyrgyz model is better suited for multilingual speech and
 longer recordings. The Wav2Vec2 model is Kyrgyz-only and should be treated as an
 experimental comparison model.
 
+The browser recording screen exposes draft subtitles for 10 CIS-region
+languages: Russian, Kazakh, Kyrgyz, Uzbek, Tatar, Tajik, Azerbaijani, Turkmen,
+Belarusian, and Ukrainian. Final transcription quality depends on the selected
+server ASR backend and model.
+
 For local translation and notes without paid API keys, run an OpenAI-compatible
 local model server such as Ollama on the host and set:
 

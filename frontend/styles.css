@@ -217,8 +217,15 @@ h3 {
 }
 
 .hero-copy,
-.muted {
+.muted,
+.language-line {
   color: var(--muted);
+}
+
+.language-line {
+  max-width: 64ch;
+  margin-bottom: 18px;
+  font-weight: 700;
 }
 
 .section-title {
@@ -331,7 +338,7 @@ h3 {
 
 .field-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.55fr) auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 14px;
@@ -435,6 +442,69 @@ audio {
 
 .live-box {
   margin-top: 18px;
+}
+
+.recorder-stage {
+  display: grid;
+  gap: 16px;
+  margin: 16px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f7faf9);
+}
+
+.recording-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #b8c4c0;
+  box-shadow: 0 0 0 0 rgba(180, 35, 24, 0);
+}
+
+.recording-dot.active {
+  background: var(--danger);
+  animation: recordPulse 1.2s ease-out infinite;
+}
+
+.mic-meter {
+  display: grid;
+  grid-template-columns: repeat(36, minmax(3px, 1fr));
+  align-items: center;
+  gap: 4px;
+  min-height: 88px;
+  padding: 10px 0;
+}
+
+.meter-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2e947f, var(--accent-dark));
+  transform-origin: center;
+  transition: height 80ms linear, opacity 80ms linear;
+  opacity: 0.54;
+}
+
+.live-subtitle {
+  min-height: 56px;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--soft-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+@keyframes recordPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(180, 35, 24, 0.32);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(180, 35, 24, 0);
+  }
 }
 
 .status-grid,

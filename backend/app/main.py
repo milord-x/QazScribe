@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.app.api.routes_download import router as download_router
 from backend.app.api.routes_tasks import router as tasks_router
 from backend.app.api.routes_upload import router as upload_router
-from backend.app.config import get_settings
+from backend.app.config import SUPPORTED_SPEECH_LANGUAGES, get_settings
 from backend.app.services.cleanup_service import cleanup_loop, run_cleanup
 
 
@@ -189,6 +189,7 @@ def ai_health() -> dict[str, object]:
         "asr_model_id": settings.asr_model_id,
         "asr_device": settings.asr_device,
         "asr_compute_type": settings.asr_compute_type,
+        "supported_speech_languages": SUPPORTED_SPEECH_LANGUAGES,
         "model_dir": str(settings.models_path),
         "model_dir_writable": _is_writable(settings.models_path),
         "uploads_dir_writable": _is_writable(settings.uploads_path),

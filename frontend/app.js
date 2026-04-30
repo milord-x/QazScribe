@@ -13,11 +13,16 @@ const recordStatusEl = document.querySelector("#record-status");
 const recordPreview = document.querySelector("#record-preview");
 const micSelect = document.querySelector("#mic-select");
 const settingsMicSelect = document.querySelector("#settings-mic-select");
+const languageSelect = document.querySelector("#language-select");
+const settingsLanguageSelect = document.querySelector("#settings-language-select");
 const refreshMicsButton = document.querySelector("#refresh-mics");
 const requestMicAccessButton = document.querySelector("#request-mic-access");
 const micHelpEl = document.querySelector("#mic-help");
 const liveTranscriptEl = document.querySelector("#live-transcript");
+const liveSubtitleEl = document.querySelector("#live-subtitle");
 const speechStatusEl = document.querySelector("#speech-status");
+const micMeterEl = document.querySelector("#mic-meter");
+const recordingDotEl = document.querySelector("#recording-dot");
 const taskIdEl = document.querySelector("#task-id");
 const taskStatusEl = document.querySelector("#task-status");
 const taskProgressEl = document.querySelector("#task-progress");
@@ -41,9 +46,29 @@ let recordedBlob = null;
 let recordingStream = null;
 let speechRecognition = null;
 let speechFinalText = "";
+let audioContext = null;
+let analyser = null;
+let meterSource = null;
+let meterFrame = null;
+let meterData = null;
+let autoUploadAfterStop = false;
 
 const MIC_STORAGE_KEY = "qazscribe.selectedMicrophoneId";
 const MIC_PERMISSION_STORAGE_KEY = "qazscribe.microphonePermissionGranted";
+const LANGUAGE_STORAGE_KEY = "qazscribe.speechLanguage";
+
+const speechLanguages = [
+  { code: "ru-RU", label: "Русский" },
+  { code: "kk-KZ", label: "Қазақша" },
+  { code: "ky-KG", label: "Кыргызча" },
+  { code: "uz-UZ", label: "O'zbekcha" },
+  { code: "tt-RU", label: "Татарча" },
+  { code: "tg-TJ", label: "Тоҷикӣ" },
+  { code: "az-AZ", label: "Azərbaycanca" },
+  { code: "tk-TM", label: "Türkmençe" },
+  { code: "be-BY", label: "Беларуская" },
+  { code: "uk-UA", label: "Українська" },
+];
 
 const statusLabels = {
   queued: "В очереди",
@@ -358,6 +383,10 @@ function selectedMicId() {
   return micSelect.value || settingsMicSelect.value || "";
 }
 
+function selectedSpeechLanguage() {
+  return languageSelect.value || settingsLanguageSelect.value || "ru-RU";
+}
+
 function saveSelectedMic(deviceId) {
   if (deviceId) {
     localStorage.setItem(MIC_STORAGE_KEY, deviceId);
@@ -376,6 +405,36 @@ function syncMicSelects(deviceId) {
       select.value = deviceId;
     }
   });
+}
+
+function saveSelectedLanguage(languageCode) {
+  localStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode || "ru-RU");
+}
+
+function syncLanguageSelects(languageCode) {
+  [languageSelect, settingsLanguageSelect].forEach((select) => {
+    if (select.value !== languageCode) {
+      select.value = languageCode;
+    }
+  });
+}
+
+function renderLanguageOptions() {
+  const rememberedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || "ru-RU";
+  [languageSelect, settingsLanguageSelect].forEach((select) => {
+    select.innerHTML = "";
+    speechLanguages.forEach((language) => {
+      const option = document.createElement("option");
+      option.value = language.code;
+      option.textContent = language.label;
+      select.appendChild(option);
+    });
+  });
+  const selected = speechLanguages.some((language) => language.code === rememberedLanguage)
+    ? rememberedLanguage
+    : "ru-RU";
+  syncLanguageSelects(selected);
+  saveSelectedLanguage(selected);
 }
 
 function renderMicOptions(devices) {
@@ -465,7 +524,7 @@ function setRecordingState(state, message) {
     return;
   }
 
-  recordStartButton.disabled = state === "recording" || state === "uploading";
+  recordStartButton.disabled = state === "recording" || state === "stopping" || state === "uploading";
   recordStopButton.disabled = state !== "recording";
   recordUploadButton.disabled = state !== "ready";
 }
@@ -479,6 +538,84 @@ function getRecorderOptions() {
 
   const mimeType = preferredTypes.find((type) => MediaRecorder.isTypeSupported(type));
   return mimeType ? { mimeType } : undefined;
+}
+
+function initializeMicMeter() {
+  micMeterEl.innerHTML = "";
+  for (let index = 0; index < 36; index += 1) {
+    const bar = document.createElement("span");
+    bar.className = "meter-bar";
+    bar.style.height = "10px";
+    micMeterEl.appendChild(bar);
+  }
+}
+
+function stopMicMeter() {
+  if (meterFrame) {
+    cancelAnimationFrame(meterFrame);
+    meterFrame = null;
+  }
+  if (audioContext) {
+    audioContext.close().catch(() => {});
+    audioContext = null;
+  }
+  analyser = null;
+  meterSource = null;
+  meterData = null;
+  recordingDotEl.classList.remove("active");
+  micMeterEl.querySelectorAll(".meter-bar").forEach((bar) => {
+    bar.style.height = "10px";
+    bar.style.opacity = "0.54";
+  });
+}
+
+function drawMicMeter() {
+  if (!analyser || !meterData) {
+    return;
+  }
+
+  analyser.getByteFrequencyData(meterData);
+  const bars = Array.from(micMeterEl.querySelectorAll(".meter-bar"));
+  bars.forEach((bar, index) => {
+    const bucketSize = Math.max(1, Math.floor(meterData.length / bars.length));
+    const start = index * bucketSize;
+    const slice = meterData.slice(start, start + bucketSize);
+    const average = slice.reduce((sum, value) => sum + value, 0) / slice.length || 0;
+    const height = 10 + (average / 255) * 78;
+    bar.style.height = `${height}px`;
+    bar.style.opacity = `${0.42 + (average / 255) * 0.58}`;
+  });
+
+  meterFrame = requestAnimationFrame(drawMicMeter);
+}
+
+function startMicMeter(stream) {
+  stopMicMeter();
+  const Context = window.AudioContext || window.webkitAudioContext;
+  if (!Context) {
+    return;
+  }
+
+  audioContext = new Context();
+  meterSource = audioContext.createMediaStreamSource(stream);
+  analyser = audioContext.createAnalyser();
+  analyser.fftSize = 256;
+  analyser.smoothingTimeConstant = 0.72;
+  meterSource.connect(analyser);
+  meterData = new Uint8Array(analyser.frequencyBinCount);
+  recordingDotEl.classList.add("active");
+  drawMicMeter();
+}
+
+function updateLiveSubtitle(text) {
+  const cleaned = normalizeSpeechText(text || "");
+  const compact = cleaned.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    liveSubtitleEl.textContent = "Субтитры появятся здесь во время речи.";
+    return;
+  }
+  const sentences = compact.match(/[^.!?\n]+[.!?]?/g) || [compact];
+  liveSubtitleEl.textContent = sentences.slice(-2).join(" ").trim();
 }
 
 function normalizeSpeechText(text) {
@@ -501,7 +638,7 @@ function createSpeechRecognition() {
   const recognition = new Recognition();
   recognition.continuous = true;
   recognition.interimResults = true;
-  recognition.lang = "ru-RU";
+  recognition.lang = selectedSpeechLanguage();
   recognition.addEventListener("result", (event) => {
     let interimText = "";
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
@@ -512,7 +649,9 @@ function createSpeechRecognition() {
         interimText = `${interimText} ${text}`;
       }
     }
-    liveTranscriptEl.textContent = normalizeSpeechText(`${speechFinalText} ${interimText}`);
+    const combinedText = normalizeSpeechText(`${speechFinalText} ${interimText}`);
+    liveTranscriptEl.textContent = combinedText;
+    updateLiveSubtitle(combinedText);
   });
   recognition.addEventListener("start", () => {
     speechStatusEl.textContent = "слушает";
@@ -535,14 +674,17 @@ async function startRecording() {
   try {
     recordedChunks = [];
     recordedBlob = null;
+    autoUploadAfterStop = false;
     speechFinalText = "";
     liveTranscriptEl.textContent = "Говорите. Если браузер поддерживает распознавание, текст появится здесь.";
+    liveSubtitleEl.textContent = "Слушаю микрофон...";
     recordPreview.hidden = true;
     recordPreview.removeAttribute("src");
 
     const deviceId = selectedMicId();
     recordingStream = await getMicrophoneStream(deviceId);
     rememberMicPermissionGranted();
+    startMicMeter(recordingStream);
     mediaRecorder = new MediaRecorder(recordingStream, getRecorderOptions());
 
     mediaRecorder.addEventListener("dataavailable", (event) => {
@@ -561,6 +703,7 @@ async function startRecording() {
       recordingStream.getTracks().forEach((track) => track.stop());
       recordingStream = null;
       mediaRecorder = null;
+      stopMicMeter();
 
       if (speechRecognition) {
         try {
@@ -571,6 +714,10 @@ async function startRecording() {
       }
 
       setRecordingState("ready", "Запись готова к загрузке.");
+      if (autoUploadAfterStop) {
+        autoUploadAfterStop = false;
+        uploadRecording();
+      }
     });
 
     mediaRecorder.start();
@@ -587,8 +734,9 @@ async function startRecording() {
 
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    autoUploadAfterStop = true;
     mediaRecorder.stop();
-    setRecordingState("stopping", "Останавливаю запись...");
+    setRecordingState("stopping", "Останавливаю запись и готовлю обработку...");
   }
 }
 
@@ -604,6 +752,7 @@ async function uploadRecording() {
   });
 
   setRecordingState("uploading", "Загружаю запись...");
+  liveSubtitleEl.textContent = "Запись отправляется на сервер. После обработки появится резюме.";
   await uploadFile(file, recordUploadButton, "Загружаю запись с микрофона...");
   setRecordingState("ready", "Запись загружена. Можно записать заново или отправить ещё раз.");
 }
@@ -630,9 +779,18 @@ requestMicAccessButton.addEventListener("click", requestMicrophoneAccess);
   });
 });
 
+[languageSelect, settingsLanguageSelect].forEach((select) => {
+  select.addEventListener("change", () => {
+    saveSelectedLanguage(select.value);
+    syncLanguageSelects(select.value);
+  });
+});
+
 if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
   setRecordingState("unsupported", "Браузер не поддерживает запись с микрофона.");
 }
 
 loadHealth();
+initializeMicMeter();
+renderLanguageOptions();
 loadMicrophones();

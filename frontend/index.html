@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>QazScribe</title>
     <link rel="icon" type="image/png" href="/logo.png?v=20260429-logo" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260429-ui4" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260430-cis1" />
   </head>
   <body>
     <header class="app-bar">
@@ -38,6 +38,10 @@
               QazScribe помогает получить текст, казахскую версию, краткую структуру
               и документы для экспорта. Сначала проверьте микрофон, затем отправьте
               запись на обработку.
+            </p>
+            <p class="language-line">
+              Русский, казахский, кыргызский, узбекский, татарский, таджикский,
+              азербайджанский, туркменский, белорусский и украинский.
             </p>
             <div class="button-row">
               <button type="button" data-screen-target="capture">Начать работу</button>
@@ -114,12 +118,24 @@
               Микрофон
               <select id="mic-select"></select>
             </label>
+            <label>
+              Язык речи
+              <select id="language-select"></select>
+            </label>
             <button type="button" class="secondary-button" id="refresh-mics">Обновить список</button>
+          </div>
+
+          <div class="recorder-stage" aria-label="Живая запись с микрофона">
+            <div class="recording-dot" id="recording-dot" aria-hidden="true"></div>
+            <div class="mic-meter" id="mic-meter" aria-hidden="true"></div>
+            <p id="live-subtitle" class="live-subtitle">
+              Нажмите «Начать запись», затем говорите рядом с микрофоном.
+            </p>
           </div>
 
           <div class="button-row">
             <button type="button" id="record-start">Начать запись</button>
-            <button type="button" id="record-stop" disabled>Остановить</button>
+            <button type="button" id="record-stop" disabled>Остановить и обработать</button>
             <button type="button" id="record-upload" disabled>Отправить запись</button>
           </div>
           <p id="record-status" class="muted">Запись ещё не начата.</p>
@@ -262,6 +278,10 @@
             Активный микрофон
             <select id="settings-mic-select"></select>
           </label>
+          <label>
+            Язык черновых субтитров
+            <select id="settings-language-select"></select>
+          </label>
           <p id="mic-help" class="muted">
             Если нужный микрофон не отображается, нажмите «Разрешить доступ», затем обновите список.
           </p>
@@ -272,7 +292,11 @@
           <div class="settings-list">
             <div>
               <span class="status-label">Распознавание</span>
-              <strong>Whisper на backend</strong>
+              <strong>Whisper и Hugging Face ASR на backend</strong>
+            </div>
+            <div>
+              <span class="status-label">Языки СНГ</span>
+              <strong>RU, KZ, KY, UZ, TT, TG, AZ, TK, BE, UK</strong>
             </div>
             <div>
               <span class="status-label">Платные API</span>
@@ -287,6 +311,6 @@
       </section>
     </main>
 
-    <script src="/static/app.js?v=20260429-ui4"></script>
+    <script src="/static/app.js?v=20260430-cis1"></script>
   </body>
 </html>
