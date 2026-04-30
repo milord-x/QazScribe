@@ -2,47 +2,76 @@
 
 ## Model Strategy
 
-QazScribe uses a multi-model architecture. The default production mode is a
-general multilingual ASR model. Additional Hugging Face models can be selected
-for regional-language experiments and presentation of model diversity.
+QazScribe uses a multi-model ASR architecture for institutional speech
+processing in the CIS region. The default production path is a strong
+multilingual Whisper model. Language-specific Hugging Face models are available
+as selectable research and demonstration backends.
 
-## Default ASR
+The active backend is configured through environment variables:
+
+```text
+ASR_BACKEND=faster_whisper | transformers_whisper | wav2vec2_ctc
+ASR_MODEL_SIZE=large-v3
+ASR_MODEL_ID=
+ASR_TRANSFORMERS_LANGUAGE=
+ASR_TRUST_REMOTE_CODE=false
+```
+
+## Default Production Model
 
 ### `openai/whisper-large-v3` through `faster-whisper`
-
-The production default is:
 
 ```text
 ASR_BACKEND=faster_whisper
 ASR_MODEL_SIZE=large-v3
+ASR_MODEL_ID=
 ASR_DEVICE=cuda
 ASR_COMPUTE_TYPE=float16
 ```
 
-Whisper large-v3 is a multilingual automatic speech recognition model. Its
-model card describes support for 99 languages and reports improved performance
-over large-v2 across many languages. In QazScribe it is used through
-`faster-whisper`, which runs Whisper with CTranslate2 for efficient local GPU
+Whisper large-v3 is the default model for mixed CIS speech, Russian, Kazakh,
+lectures, meetings, and formal recordings. The Hugging Face model card
+describes Whisper large-v3 as a multilingual ASR model with support for 99
+languages. It is used through `faster-whisper` for efficient local GPU
 inference.
-
-Use this mode for general Russian, Kazakh, mixed speech, lectures, and formal
-meeting recordings.
 
 Source: https://huggingface.co/openai/whisper-large-v3
 
-## Optional Regional ASR Models
+## Regional Model Catalog
 
-### `nineninesix/kyrgyz-whisper-medium`
+| Language | Recommended model | Backend | Notes |
+| --- | --- | --- | --- |
+| General multilingual | `openai/whisper-large-v3` | `faster_whisper` | Default production model for mixed speech. |
+| Russian | `openai/whisper-large-v3` | `faster_whisper` | Preferred for Russian and mixed Russian/CIS speech. |
+| Kazakh | `InflexionLab/sybyrla` | `transformers_whisper` | Whisper Large V3 fine-tuned for Kazakh with Russian auxiliary data. |
+| Kyrgyz | `nineninesix/kyrgyz-whisper-medium` | `transformers_whisper` | Kyrgyz/Russian/English model for code-switching scenarios. |
+| Kyrgyz comparison | `kyrgyz-ai/Wav2vec-Kyrgyz` | `wav2vec2_ctc` | Kyrgyz-only Wav2Vec2 comparison model. |
+| Uzbek | `Uzbekswe/uzbek_stt_v1` | `transformers_whisper` | Whisper Medium Uzbek model; model card reports 16.7% overall WER. |
+| Tatar | `501Good/whisper-tiny-tt` | `transformers_whisper` | Experimental Tatar model; use large-v3 as fallback for serious demos. |
+| Tajik | `muhtasham/whisper-tg` | `transformers_whisper` | Whisper Small Tajik model; model card reports 18.9518% WER. |
+| Azerbaijani | `LocalDoc/azerbaijani-whisper-turbo` | `transformers_whisper` | Azerbaijani Whisper Turbo; model card reports 13.17% WER. |
+| Turkmen | `Atamyrat2005/whisper-base-tk-finetuned` | `transformers_whisper` | Whisper model fine-tuned for Turkmen on Common Voice 17.0. |
+| Belarusian | `Aleton/whisper-small-be-custom` | `transformers_whisper` | Whisper Small model optimized for Belarusian. |
+| Ukrainian | `vumenira/whisper-small-uk` | `transformers_whisper` | Whisper Small Ukrainian model; model card reports 17.2136% WER. |
 
-This is a Whisper Medium based model fine-tuned for Kyrgyz while retaining
-Russian and English capability. Its model card describes:
+The same catalog is exposed by the backend health endpoint:
 
-- Kyrgyz language support through a custom Kyrgyz token;
-- multilingual scope for Kyrgyz, Russian, and English;
-- training on Kyrgyz audio with additional English/Russian material;
-- suitability for code-switching scenarios.
+```text
+GET /health/ai
+```
 
-Recommended use in QazScribe:
+## Environment Presets
+
+### Kazakh
+
+```text
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=InflexionLab/sybyrla
+ASR_TRANSFORMERS_LANGUAGE=kazakh
+ASR_TRUST_REMOTE_CODE=false
+```
+
+### Kyrgyz
 
 ```text
 ASR_BACKEND=transformers_whisper
@@ -51,28 +80,59 @@ ASR_TRANSFORMERS_LANGUAGE=kyrgyz
 ASR_TRUST_REMOTE_CODE=true
 ```
 
-Use this mode when the demonstration or evaluation specifically targets Kyrgyz
-speech.
-
-Source: https://huggingface.co/nineninesix/kyrgyz-whisper-medium
-
-### `kyrgyz-ai/Wav2vec-Kyrgyz`
-
-This is a Wav2Vec2-Large-XLSR-53 model fine-tuned for Kyrgyz on Common Voice.
-The model card reports a self-reported Common Voice Kyrgyz test WER of 34.08%.
-
-Recommended use in QazScribe:
+### Uzbek
 
 ```text
-ASR_BACKEND=wav2vec2_ctc
-ASR_MODEL_ID=kyrgyz-ai/Wav2vec-Kyrgyz
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=Uzbekswe/uzbek_stt_v1
+ASR_TRANSFORMERS_LANGUAGE=uzbek
 ASR_TRUST_REMOTE_CODE=false
 ```
 
-This mode should be treated as an experimental comparison model. It is
-Kyrgyz-focused and does not provide the same multilingual robustness as Whisper.
+### Tajik
 
-Source: https://huggingface.co/kyrgyz-ai/Wav2vec-Kyrgyz
+```text
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=muhtasham/whisper-tg
+ASR_TRANSFORMERS_LANGUAGE=tajik
+ASR_TRUST_REMOTE_CODE=false
+```
+
+### Azerbaijani
+
+```text
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=LocalDoc/azerbaijani-whisper-turbo
+ASR_TRANSFORMERS_LANGUAGE=azerbaijani
+ASR_TRUST_REMOTE_CODE=false
+```
+
+### Turkmen
+
+```text
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=Atamyrat2005/whisper-base-tk-finetuned
+ASR_TRANSFORMERS_LANGUAGE=turkmen
+ASR_TRUST_REMOTE_CODE=false
+```
+
+### Belarusian
+
+```text
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=Aleton/whisper-small-be-custom
+ASR_TRANSFORMERS_LANGUAGE=belarusian
+ASR_TRUST_REMOTE_CODE=false
+```
+
+### Ukrainian
+
+```text
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=vumenira/whisper-small-uk
+ASR_TRANSFORMERS_LANGUAGE=ukrainian
+ASR_TRUST_REMOTE_CODE=false
+```
 
 ## Browser Draft Captions
 
@@ -83,20 +143,26 @@ Russian, Kazakh, Kyrgyz, Uzbek, Tatar, Tajik, Azerbaijani, Turkmen,
 Belarusian, Ukrainian
 ```
 
-These captions depend on the browser implementation and are not used as the
-final transcript. Final text is produced by the backend ASR model.
+These captions depend on browser support and are not used as the final
+transcript. The server model produces the authoritative text.
 
-## Model Limitations
+## Limitations
 
-ASR accuracy depends on:
+ASR accuracy depends on microphone quality, background noise, speaker overlap,
+language mixing, domain terminology, and selected model. The current MVP speaker
+attribution is heuristic and based on timing gaps; it is not a full neural
+speaker diarization system.
 
-- microphone quality;
-- distance from speaker to microphone;
-- background noise;
-- overlap between speakers;
-- language mixing;
-- domain-specific names and terminology;
-- selected ASR backend.
+## Sources
 
-Speaker attribution in the MVP is heuristic and based on timing gaps. It is not
-full neural speaker diarization.
+- https://huggingface.co/openai/whisper-large-v3
+- https://huggingface.co/InflexionLab/sybyrla
+- https://huggingface.co/nineninesix/kyrgyz-whisper-medium
+- https://huggingface.co/kyrgyz-ai/Wav2vec-Kyrgyz
+- https://huggingface.co/Uzbekswe/uzbek_stt_v1
+- https://huggingface.co/501Good/whisper-tiny-tt
+- https://huggingface.co/muhtasham/whisper-tg
+- https://huggingface.co/LocalDoc/azerbaijani-whisper-turbo
+- https://huggingface.co/Atamyrat2005/whisper-base-tk-finetuned
+- https://huggingface.co/Aleton/whisper-small-be-custom
+- https://huggingface.co/vumenira/whisper-small-uk

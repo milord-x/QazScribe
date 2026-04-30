@@ -190,11 +190,53 @@ QazScribe can also run experimental Hugging Face ASR models through
 `transformers`:
 
 ```text
+# Kazakh Whisper Large V3 model
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=InflexionLab/sybyrla
+ASR_TRANSFORMERS_LANGUAGE=kazakh
+ASR_TRUST_REMOTE_CODE=false
+
 # Kyrgyz / Russian / English Whisper model
 ASR_BACKEND=transformers_whisper
 ASR_MODEL_ID=nineninesix/kyrgyz-whisper-medium
 ASR_TRANSFORMERS_LANGUAGE=kyrgyz
 ASR_TRUST_REMOTE_CODE=true
+
+# Uzbek Whisper model
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=Uzbekswe/uzbek_stt_v1
+ASR_TRANSFORMERS_LANGUAGE=uzbek
+ASR_TRUST_REMOTE_CODE=false
+
+# Tajik Whisper model
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=muhtasham/whisper-tg
+ASR_TRANSFORMERS_LANGUAGE=tajik
+ASR_TRUST_REMOTE_CODE=false
+
+# Azerbaijani Whisper Turbo model
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=LocalDoc/azerbaijani-whisper-turbo
+ASR_TRANSFORMERS_LANGUAGE=azerbaijani
+ASR_TRUST_REMOTE_CODE=false
+
+# Turkmen Whisper model
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=Atamyrat2005/whisper-base-tk-finetuned
+ASR_TRANSFORMERS_LANGUAGE=turkmen
+ASR_TRUST_REMOTE_CODE=false
+
+# Belarusian Whisper model
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=Aleton/whisper-small-be-custom
+ASR_TRANSFORMERS_LANGUAGE=belarusian
+ASR_TRUST_REMOTE_CODE=false
+
+# Ukrainian Whisper model
+ASR_BACKEND=transformers_whisper
+ASR_MODEL_ID=vumenira/whisper-small-uk
+ASR_TRANSFORMERS_LANGUAGE=ukrainian
+ASR_TRUST_REMOTE_CODE=false
 
 # Kyrgyz Wav2Vec2 CTC model
 ASR_BACKEND=wav2vec2_ctc
