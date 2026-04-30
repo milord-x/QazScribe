@@ -163,6 +163,12 @@ ASR_DEVICE=cuda
 ASR_COMPUTE_TYPE=float16
 ```
 
+For the first public demo, `ASR_MODEL_SIZE=small` or `medium` starts faster and
+uses less VRAM. Switch back to `large-v3` when the pipeline is stable.
+
+The Docker image installs the CUDA 12 cuBLAS and cuDNN libraries required by
+`faster-whisper` GPU inference.
+
 Model cache variables for the server:
 
 ```text
