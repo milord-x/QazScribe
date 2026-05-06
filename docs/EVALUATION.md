@@ -2,25 +2,17 @@
 
 ## Objective
 
-The evaluation goal is to determine whether QazScribe produces usable meeting
-artifacts for institutional workflows: transcripts, speaker-oriented text,
-structured notes, summaries, and downloadable documents.
+The evaluation goal is to determine whether qTranscript produces usable
+Kazakh/Kyrgyz transcripts and export documents for institutional workflows.
 
 ## Test Languages
 
 Minimum evaluation set:
 
 ```text
-Russian
 Kazakh
 Kyrgyz
-Uzbek
-Tatar
-Tajik
-Azerbaijani
-Turkmen
-Belarusian
-Ukrainian
+Kazakh/Kyrgyz mixed or uncertain speech
 ```
 
 ## Test Conditions
@@ -31,7 +23,7 @@ Use several controlled scenarios:
 - quiet room, two speakers;
 - lecture recording from a laptop microphone;
 - phone microphone recording;
-- mixed Russian/Kazakh or Russian/Kyrgyz speech;
+- mixed Kazakh/Kyrgyz speech;
 - noisy background recording.
 
 ## Metrics
@@ -47,8 +39,8 @@ Use several controlled scenarios:
 ### Qualitative
 
 - correctness of names, numbers, and terms;
-- usefulness of the summary;
-- clarity of the full notes;
+- correctness of Kazakh vs. Kyrgyz language detection;
+- clarity of the transcript;
 - readability of exported documents;
 - stability of microphone recording on desktop and mobile.
 

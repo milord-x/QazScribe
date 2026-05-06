@@ -36,25 +36,25 @@ ASR_COMPUTE_TYPE=float16
 cd /media/proart/ssd/qazscribe/repo/QazScribe
 docker compose down
 git pull
-docker compose up -d --build
+docker compose --env-file backend/.env up -d --build
 docker compose logs backend --tail=80
 ```
 
 ## Health Checks
 
 ```bash
-curl -s http://127.0.0.1:8080/health
-curl -s http://127.0.0.1:8080/health/storage
-curl -s http://127.0.0.1:8080/health/ai
+curl -s http://127.0.0.1/health
+curl -s http://127.0.0.1/health/storage
+curl -s http://127.0.0.1/health/ai
 ```
 
 ## Public Demonstration
 
-For a short-term demonstration without purchasing a domain, forward local port
-`8080` with a tunnel:
+For a short-term demonstration without DNS, forward the configured local HTTP
+port with a tunnel:
 
 ```bash
-ngrok http 8080
+ngrok http 80
 ```
 
 This provides HTTPS access, which is important for browser microphone

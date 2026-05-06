@@ -1,10 +1,10 @@
-# QazScribe Architecture
+# qTranscript Architecture
 
 ## Purpose
 
-QazScribe is an institutional speech-processing system for conferences,
-meetings, lectures, and formal sessions in the CIS region. The system is
-designed to run on an organization-controlled GPU workstation rather than on a
+qTranscript is an institutional speech-processing system for Kazakh and Kyrgyz
+conference, meeting, lecture, and formal-session audio. The system is designed
+to run on an organization-controlled GPU workstation rather than on a
 third-party hosted speech platform.
 
 ## Processing Pipeline
@@ -14,13 +14,13 @@ audio input
   -> browser recording or file upload
   -> audio normalization with FFmpeg
   -> ASR model inference
-  -> optional translation
-  -> structured notes and summary
+  -> Kazakh/Kyrgyz ASR model inference
+  -> speaker-oriented transcript
   -> document export
 ```
 
 The backend stores each task as a short-lived runtime record. Uploaded audio,
-converted audio, transcripts, summaries, and generated documents are retained
+converted audio, transcripts, internal structures, and generated documents are retained
 only for the configured retention window.
 
 ## Components
@@ -61,11 +61,11 @@ Docker Compose runs:
 - `backend`: FastAPI, ASR inference, document generation;
 - `nginx`: reverse proxy for public HTTP access on port `8080`.
 
-For public demonstrations without a purchased domain, an HTTPS tunnel such as
-ngrok or Cloudflare Tunnel can forward traffic to the local `8080` port.
+For domain deployment, `qtranscript.kz` should point to the server public IP or
+to a managed tunnel/proxy. The Docker Nginx service can bind to port `80`.
 
 ## Design Assumptions
 
-QazScribe prioritizes local control, reproducibility, and inspectable outputs.
+qTranscript prioritizes local control, reproducibility, and inspectable outputs.
 It does not assume commercial cloud speech APIs. External LLM-compatible
 services can be added, but the MVP remains functional without them.

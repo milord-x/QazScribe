@@ -1,12 +1,17 @@
-# QazScribe Conference AI Notes
+# qTranscript Kazakh-Kyrgyz Speech Recognition
 
-QazScribe is an MVP web system for conference and meeting audio. The target pipeline is:
+qTranscript is a local GPU-based speech recognition system focused on Kazakh and
+Kyrgyz institutional audio. The target pipeline is:
 
 ```text
-audio -> speech recognition -> Kazakh translation -> structured notes -> document export
+audio -> Kazakh/Kyrgyz speech recognition -> speaker transcript -> document export
 ```
 
-This repository currently contains a runnable FastAPI backend, static frontend, upload/recording flow, Whisper transcription, fallback translation/summary, document export, cleanup, and Docker-oriented deployment files.
+This repository contains a runnable FastAPI backend, static frontend,
+upload/recording flow, Whisper transcription, document export, cleanup, and
+Docker-oriented deployment files. Internal translation and structuring code is
+kept in the backend for future use, but the public frontend is focused on
+transcription and export.
 
 ## Project Structure
 
@@ -24,6 +29,7 @@ data/        Local runtime storage, ignored by git
 - [Architecture](docs/ARCHITECTURE.md)
 - [Speech and Language Models](docs/MODELS.md)
 - [Deployment Notes](docs/DEPLOYMENT.md)
+- [qtranscript.kz Domain Setup](docs/DOMAIN.md)
 - [Evaluation Plan](docs/EVALUATION.md)
 
 ## Local Development
@@ -174,7 +180,7 @@ ASR_COMPUTE_TYPE=float16
 ASR_LANGUAGE=
 ASR_BEAM_SIZE=5
 ASR_VAD_FILTER=true
-ASR_INITIAL_PROMPT=Это запись лекции, конференции или заседания. Речь может быть на русском, казахском, кыргызском, узбекском, татарском, таджикском, азербайджанском, туркменском, белорусском или украинском языке. Сохраняй имена, термины, числа и смысл фраз точно.
+ASR_INITIAL_PROMPT=Это запись лекции, конференции или заседания. Речь может быть на казахском или кыргызском языке. Эти языки похожи, поэтому сначала внимательно определи язык речи, затем точно распознай текст. Сохраняй имена, термины, числа и смысл фраз.
 ASR_TRANSFORMERS_LANGUAGE=
 ASR_TRUST_REMOTE_CODE=false
 ASR_CHUNK_LENGTH_SECONDS=30
@@ -186,7 +192,7 @@ uses less VRAM. Switch back to `large-v3` when the pipeline is stable.
 The Docker image installs the CUDA 12 cuBLAS and cuDNN libraries required by
 `faster-whisper` GPU inference.
 
-QazScribe can also run experimental Hugging Face ASR models through
+qTranscript can also run experimental Hugging Face ASR models through
 `transformers`:
 
 ```text
@@ -202,56 +208,16 @@ ASR_MODEL_ID=nineninesix/kyrgyz-whisper-medium
 ASR_TRANSFORMERS_LANGUAGE=kyrgyz
 ASR_TRUST_REMOTE_CODE=true
 
-# Uzbek Whisper model
-ASR_BACKEND=transformers_whisper
-ASR_MODEL_ID=Uzbekswe/uzbek_stt_v1
-ASR_TRANSFORMERS_LANGUAGE=uzbek
-ASR_TRUST_REMOTE_CODE=false
-
-# Tajik Whisper model
-ASR_BACKEND=transformers_whisper
-ASR_MODEL_ID=muhtasham/whisper-tg
-ASR_TRANSFORMERS_LANGUAGE=tajik
-ASR_TRUST_REMOTE_CODE=false
-
-# Azerbaijani Whisper Turbo model
-ASR_BACKEND=transformers_whisper
-ASR_MODEL_ID=LocalDoc/azerbaijani-whisper-turbo
-ASR_TRANSFORMERS_LANGUAGE=azerbaijani
-ASR_TRUST_REMOTE_CODE=false
-
-# Turkmen Whisper model
-ASR_BACKEND=transformers_whisper
-ASR_MODEL_ID=Atamyrat2005/whisper-base-tk-finetuned
-ASR_TRANSFORMERS_LANGUAGE=turkmen
-ASR_TRUST_REMOTE_CODE=false
-
-# Belarusian Whisper model
-ASR_BACKEND=transformers_whisper
-ASR_MODEL_ID=Aleton/whisper-small-be-custom
-ASR_TRANSFORMERS_LANGUAGE=belarusian
-ASR_TRUST_REMOTE_CODE=false
-
-# Ukrainian Whisper model
-ASR_BACKEND=transformers_whisper
-ASR_MODEL_ID=vumenira/whisper-small-uk
-ASR_TRANSFORMERS_LANGUAGE=ukrainian
-ASR_TRUST_REMOTE_CODE=false
-
 # Kyrgyz Wav2Vec2 CTC model
 ASR_BACKEND=wav2vec2_ctc
 ASR_MODEL_ID=kyrgyz-ai/Wav2vec-Kyrgyz
 ASR_TRUST_REMOTE_CODE=false
 ```
 
-The Whisper-based Kyrgyz model is better suited for multilingual speech and
-longer recordings. The Wav2Vec2 model is Kyrgyz-only and should be treated as an
-experimental comparison model.
-
-The browser recording screen exposes draft subtitles for 10 CIS-region
-languages: Russian, Kazakh, Kyrgyz, Uzbek, Tatar, Tajik, Azerbaijani, Turkmen,
-Belarusian, and Ukrainian. Final transcription quality depends on the selected
-server ASR backend and model.
+The Whisper-based Kyrgyz model is better suited for Kyrgyz speech and
+code-switching. The Wav2Vec2 model is Kyrgyz-only and should be treated as an
+experimental comparison model. The browser recording screen exposes only Kazakh,
+Kyrgyz, and auto mode.
 
 For local translation and notes without external cloud services, run an OpenAI-compatible
 local model server such as Ollama on the host and set:
@@ -275,7 +241,7 @@ XDG_CACHE_HOME=/media/proart/ssd/qazscribe/models/cache
 Start with Docker Compose:
 
 ```bash
-docker compose up -d --build
+docker compose --env-file backend/.env up -d --build
 ```
 
 If you use a custom logo, place `logo.png` in the repository root before
@@ -320,7 +286,7 @@ Network note: the new server has a 10G-capable adapter, but the observed Etherne
 For MVP public access, put Nginx or Cloudflare Tunnel in front of the Docker stack:
 
 ```text
-Internet user -> HTTPS URL -> Cloudflare Tunnel/Nginx -> QazScribe backend
+Internet user -> qtranscript.kz -> Nginx/Cloudflare -> qTranscript backend
 ```
 
 Do not expose the workstation directly without HTTPS, upload limits, and access controls.

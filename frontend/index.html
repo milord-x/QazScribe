@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>QazScribe</title>
+    <title>qTranscript</title>
     <link rel="icon" type="image/png" href="/logo.png?v=20260429-logo" />
     <link rel="stylesheet" href="/static/styles.css?v=20260430-final1" />
   </head>
@@ -15,7 +15,7 @@
           <span>Q</span>
         </span>
         <div>
-          <strong>QazScribe</strong>
+          <strong>qTranscript</strong>
           <span>Протоколы конференций и заседаний</span>
         </div>
       </div>
@@ -41,13 +41,11 @@
             <p class="eyebrow">Локальная транскрибация для деловых задач</p>
             <h1>Запишите речь или загрузите аудио</h1>
             <p class="hero-copy">
-              QazScribe помогает получить текст, казахскую версию, краткую структуру
-              и документы для экспорта. Сначала проверьте микрофон, затем отправьте
-              запись на обработку.
+              qTranscript помогает распознать казахскую и кыргызскую речь, отличить
+              близкие языки и подготовить текстовые документы для организации.
             </p>
             <p class="language-line">
-              Русский, казахский, кыргызский, узбекский, татарский, таджикский,
-              азербайджанский, туркменский, белорусский и украинский.
+              Основной фокус системы: качественное распознавание казахского и кыргызского языков.
             </p>
             <div class="button-row">
               <button type="button" data-screen-target="capture">Начать работу</button>
@@ -60,11 +58,11 @@
             <img class="hero-logo" src="/logo.png?v=20260429-logo" alt="" onerror="this.hidden=true" />
             <span>Готово к тесту</span>
             <strong>Микрофон или файл</strong>
-            <p>После обработки появятся текст, резюме и ссылки на документы.</p>
+            <p>После обработки появятся текст, расшифровка по спикерам и ссылки на документы.</p>
           </div>
         </div>
 
-        <section class="steps-grid" aria-label="Как пользоваться QazScribe">
+        <section class="steps-grid" aria-label="Как пользоваться qTranscript">
           <article>
             <span>1</span>
             <h2>Начните запись с микрофона</h2>
@@ -241,21 +239,6 @@
           <textarea id="speaker-preview">Спикеры появятся после обработки.</textarea>
         </section>
 
-        <section class="panel" aria-labelledby="translation-title">
-          <h2 id="translation-title">Казахская версия</h2>
-          <textarea id="translation-preview">Перевод появится после обработки.</textarea>
-        </section>
-
-        <section class="panel" aria-labelledby="notes-title">
-          <h2 id="notes-title">Основной полный конспект</h2>
-          <textarea id="detailed-summary-preview">Конспект появится после обработки.</textarea>
-        </section>
-
-        <section class="panel" aria-labelledby="summary-title">
-          <h2 id="summary-title">Краткое резюме</h2>
-          <textarea id="summary-preview">Краткое резюме появится после обработки.</textarea>
-        </section>
-
         <section class="panel" aria-labelledby="downloads-title">
           <h2 id="downloads-title">Скачать результат</h2>
           <div class="download-row" id="download-links">
@@ -301,8 +284,8 @@
               <strong>Whisper и Hugging Face ASR на backend</strong>
             </div>
             <div>
-              <span class="status-label">Языки СНГ</span>
-              <strong>RU, KZ, KY, UZ, TT, TG, AZ, TK, BE, UK</strong>
+              <span class="status-label">Основные языки</span>
+              <strong>KZ, KY</strong>
             </div>
             <div>
               <span class="status-label">Режим работы</span>
