@@ -128,7 +128,7 @@ SUPPORTED_ASR_MODELS = [
 
 
 class Settings(BaseSettings):
-    app_name: str = Field(default="qTranscript Kazakh-Kyrgyz Speech Recognition", alias="APP_NAME")
+    app_name: str = Field(default="Qtranscript Kazakh-Kyrgyz Speech Recognition", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
     frontend_dir: str = Field(default="frontend", alias="FRONTEND_DIR")
     max_upload_mb: int = Field(default=300, alias="MAX_UPLOAD_MB")

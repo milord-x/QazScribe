@@ -29,7 +29,7 @@ def write_test_wav(path: Path, duration_seconds: float = 1.0) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run QazScribe upload smoke test.")
+    parser = argparse.ArgumentParser(description="Run Qtranscript upload smoke test.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--timeout", type=int, default=180, help="Seconds to wait for completion.")
     parser.add_argument("--audio", type=Path, default=Path("/tmp/qazscribe-smoke.wav"))

@@ -1,8 +1,8 @@
-# qTranscript Architecture
+# Qtranscript Architecture
 
 ## Purpose
 
-qTranscript is an institutional speech-processing system for Kazakh and Kyrgyz
+Qtranscript is an institutional speech-processing system for Kazakh and Kyrgyz
 conference, meeting, lecture, and formal-session audio. The system is designed
 to run on an organization-controlled GPU workstation rather than on a
 third-party hosted speech platform.
@@ -66,6 +66,6 @@ to a managed tunnel/proxy. The Docker Nginx service can bind to port `80`.
 
 ## Design Assumptions
 
-qTranscript prioritizes local control, reproducibility, and inspectable outputs.
+Qtranscript prioritizes local control, reproducibility, and inspectable outputs.
 It does not assume commercial cloud speech APIs. External LLM-compatible
 services can be added, but the MVP remains functional without them.

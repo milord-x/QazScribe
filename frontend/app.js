@@ -85,7 +85,7 @@ const translations = {
     heroEyebrow: "Локальная транскрибация для деловых задач",
     heroTitle: "Запишите речь или загрузите аудио",
     heroCopy:
-      "qTranscript помогает распознать казахскую и кыргызскую речь, отличить близкие языки и подготовить текстовые документы для организации.",
+      "Qtranscript помогает распознать казахскую и кыргызскую речь, отличить близкие языки и подготовить текстовые документы для организации.",
     heroLanguages:
       "Основной фокус системы: качественное распознавание казахского и кыргызского языков.",
     startWork: "Начать работу",
@@ -214,7 +214,7 @@ const translations = {
     heroEyebrow: "Іскерлік міндеттерге арналған жергілікті транскрибация",
     heroTitle: "Сөзді жазыңыз немесе аудио жүктеңіз",
     heroCopy:
-      "qTranscript қазақ және қырғыз тіліндегі сөзді танып, жақын тілдерді ажыратып, ұйымға арналған мәтіндік құжаттар дайындайды.",
+      "Qtranscript қазақ және қырғыз тіліндегі сөзді танып, жақын тілдерді ажыратып, ұйымға арналған мәтіндік құжаттар дайындайды.",
     heroLanguages:
       "Жүйенің негізгі фокусы: қазақ және қырғыз тілдерін сапалы тану.",
     startWork: "Жұмысты бастау",
@@ -343,7 +343,7 @@ const translations = {
     heroEyebrow: "Local transcription for institutional work",
     heroTitle: "Record speech or upload audio",
     heroCopy:
-      "qTranscript recognizes Kazakh and Kyrgyz speech, separates closely related languages, and prepares text documents for organizations.",
+      "Qtranscript recognizes Kazakh and Kyrgyz speech, separates closely related languages, and prepares text documents for organizations.",
     heroLanguages:
       "Main system focus: high-quality recognition of Kazakh and Kyrgyz speech.",
     startWork: "Start",

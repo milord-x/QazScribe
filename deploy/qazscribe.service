@@ -1,5 +1,5 @@
 [Unit]
-Description=QazScribe Docker Compose stack
+Description=Qtranscript Docker Compose stack
 Requires=docker.service
 After=docker.service network-online.target
 

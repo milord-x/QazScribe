@@ -71,7 +71,7 @@ def _fallback_notes(
         detailed_summary = short_summary
 
     return StructuredNotes(
-        title="QazScribe: протокол встречи",
+        title="Qtranscript: протокол встречи",
         short_summary=short_summary,
         detailed_summary=detailed_summary,
         key_points=key_points,
@@ -146,7 +146,7 @@ def _notes_from_provider(
     parsed = json.loads(content)
 
     return StructuredNotes(
-        title=str(parsed.get("title") or "QazScribe: протокол встречи"),
+        title=str(parsed.get("title") or "Qtranscript: протокол встречи"),
         short_summary=str(parsed.get("short_summary") or ""),
         detailed_summary=str(parsed.get("detailed_summary") or ""),
         key_points=_as_text_list(parsed.get("key_points")),

@@ -1,6 +1,6 @@
 # Backend
 
-FastAPI backend for the QazScribe Conference AI Notes MVP.
+FastAPI backend for the Qtranscript Kazakh-Kyrgyz speech recognition MVP.
 
 ## Run Locally
 

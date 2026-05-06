@@ -2,7 +2,7 @@
 
 ## Objective
 
-The evaluation goal is to determine whether qTranscript produces usable
+The evaluation goal is to determine whether Qtranscript produces usable
 Kazakh/Kyrgyz transcripts and export documents for institutional workflows.
 
 ## Test Languages

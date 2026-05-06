@@ -4,7 +4,7 @@ set -euo pipefail
 BASE_DIR="${QAZSCRIBE_BASE_DIR:-/media/proart/ssd/qazscribe}"
 OWNER="${QAZSCRIBE_OWNER:-proart:proart}"
 
-echo "Creating QazScribe directories under ${BASE_DIR}"
+echo "Creating Qtranscript directories under ${BASE_DIR}"
 sudo mkdir -p \
   "${BASE_DIR}/repo" \
   "${BASE_DIR}/data" \

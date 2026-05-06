@@ -31,11 +31,49 @@ Value: SERVER_PUBLIC_IP
 Replace `SERVER_PUBLIC_IP` with the public IPv4 address of the server or router
 that forwards traffic to the server.
 
+For Hoster.kz, this is done in the personal cabinet through domain DNS
+management / DNS-hosting records. The exact UI can change, but the target result
+is still two A records: root domain and `www`.
+
+Find the public IP on the server:
+
+```bash
+curl -4 ifconfig.me
+```
+
+or:
+
+```bash
+curl -4 https://api.ipify.org
+```
+
+Use the returned IPv4 address as `SERVER_PUBLIC_IP`.
+
 If the server is behind a router, forward these ports to the server:
 
 ```text
 80/tcp
 443/tcp
+```
+
+This is configured in the router or firewall at the physical network where the
+server is installed, not in Hoster.kz. Find the server local network IP:
+
+```bash
+hostname -I
+```
+
+Example result:
+
+```text
+192.168.1.45
+```
+
+Router forwarding example:
+
+```text
+WAN 80  -> 192.168.1.45:80
+WAN 443 -> 192.168.1.45:443
 ```
 
 ## Docker Port

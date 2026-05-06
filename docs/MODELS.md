@@ -2,7 +2,7 @@
 
 ## Model Strategy
 
-qTranscript uses a multi-model ASR architecture for Kazakh and Kyrgyz
+Qtranscript uses a multi-model ASR architecture for Kazakh and Kyrgyz
 institutional speech. The default production path is a strong multilingual
 Whisper model because it can auto-detect closely related languages. Specialized
 Kazakh and Kyrgyz Hugging Face models are available as selectable evaluation

@@ -61,7 +61,7 @@ def _build_payload(
     speaker_names = sorted({segment.get("speaker", "Спикер 1") for segment in segments})
     duration = metadata.get("recording_duration_seconds") or _recording_duration(segments)
     return {
-        "title": "QazScribe: конспект записи",
+        "title": "Qtranscript: конспект записи",
         "task_id": task_id,
         "processed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "recording_started_at": metadata.get("recording_started_at") or "unknown",
@@ -279,14 +279,14 @@ def _write_pdf(path: Path, payload: dict[str, Any]) -> None:
     font_name = _font_name()
     styles = getSampleStyleSheet()
     normal = ParagraphStyle(
-        "QazScribeNormal",
+        "QtranscriptNormal",
         parent=styles["Normal"],
         fontName=font_name,
         fontSize=10,
         leading=14,
     )
     heading = ParagraphStyle(
-        "QazScribeHeading",
+        "QtranscriptHeading",
         parent=styles["Heading2"],
         fontName=font_name,
         fontSize=14,
@@ -295,7 +295,7 @@ def _write_pdf(path: Path, payload: dict[str, Any]) -> None:
         spaceAfter=6,
     )
     title = ParagraphStyle(
-        "QazScribeTitle",
+        "QtranscriptTitle",
         parent=styles["Title"],
         fontName=font_name,
         fontSize=18,

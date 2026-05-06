@@ -1,6 +1,6 @@
-# qTranscript Kazakh-Kyrgyz Speech Recognition
+# Qtranscript Kazakh-Kyrgyz Speech Recognition
 
-qTranscript is a local GPU-based speech recognition system focused on Kazakh and
+Qtranscript is a local GPU-based speech recognition system focused on Kazakh and
 Kyrgyz institutional audio. The target pipeline is:
 
 ```text
@@ -108,7 +108,7 @@ LLM_API_KEY=your_key_here
 LLM_MODEL=your_model_name
 ```
 
-Without those values, QazScribe runs in local fallback mode and still generates
+Without those values, Qtranscript runs in local fallback mode and still generates
 result documents.
 
 Runtime files are temporary. Uploads and processed audio are deleted after `UPLOAD_RETENTION_HOURS`; generated documents are deleted after `OUTPUT_RETENTION_HOURS`. Cleanup runs on startup and in a background loop.
@@ -192,7 +192,7 @@ uses less VRAM. Switch back to `large-v3` when the pipeline is stable.
 The Docker image installs the CUDA 12 cuBLAS and cuDNN libraries required by
 `faster-whisper` GPU inference.
 
-qTranscript can also run experimental Hugging Face ASR models through
+Qtranscript can also run experimental Hugging Face ASR models through
 `transformers`:
 
 ```text
@@ -286,7 +286,7 @@ Network note: the new server has a 10G-capable adapter, but the observed Etherne
 For MVP public access, put Nginx or Cloudflare Tunnel in front of the Docker stack:
 
 ```text
-Internet user -> qtranscript.kz -> Nginx/Cloudflare -> qTranscript backend
+Internet user -> qtranscript.kz -> Nginx/Cloudflare -> Qtranscript backend
 ```
 
 Do not expose the workstation directly without HTTPS, upload limits, and access controls.
