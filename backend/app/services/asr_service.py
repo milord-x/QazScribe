@@ -35,6 +35,8 @@ class TranscriptionResult:
 _model = None
 _model_key: tuple[str, ...] | None = None
 _model_lock = Lock()
+FASTER_WHISPER_LANGUAGE_HINTS = {"kk"}
+KYRGYZ_MODEL_ID = "nineninesix/kyrgyz-whisper-medium"
 
 
 def _assign_speakers(segments: list[TranscriptionSegment]) -> list[TranscriptionSegment]:
@@ -137,7 +139,12 @@ def _load_transformers_pipeline(settings: Settings):
                 )
                 model.to(device)
                 tokenizer_kwargs = dict(common_kwargs)
-                if settings.asr_transformers_language:
+                # Some fine-tuned Whisper checkpoints cover languages that are
+                # not in the base Whisper tokenizer language list.
+                if settings.asr_transformers_language and settings.asr_transformers_language not in {
+                    "kyrgyz",
+                    "ky",
+                }:
                     tokenizer_kwargs.update(
                         {
                             "language": settings.asr_transformers_language,
@@ -272,6 +279,17 @@ def transcribe_audio(
 
     normalized_language_hint = (language_hint or "").strip().lower() or None
 
+    if normalized_language_hint == "ky" and settings.asr_backend.strip().lower() == "faster_whisper":
+        kyrgyz_settings = settings.model_copy(
+            update={
+                "asr_backend": "transformers_whisper",
+                "asr_model_id": KYRGYZ_MODEL_ID,
+                "asr_transformers_language": "",
+                "asr_trust_remote_code": True,
+            }
+        )
+        return _transcribe_with_transformers(audio_path, kyrgyz_settings, normalized_language_hint)
+
     if settings.asr_backend.strip().lower() != "faster_whisper":
         return _transcribe_with_transformers(audio_path, settings, normalized_language_hint)
 
@@ -282,7 +300,11 @@ def transcribe_audio(
             str(audio_path),
             beam_size=settings.asr_beam_size,
             vad_filter=settings.asr_vad_filter,
-            language=normalized_language_hint or settings.asr_language or None,
+            language=(
+                normalized_language_hint
+                if normalized_language_hint in FASTER_WHISPER_LANGUAGE_HINTS
+                else settings.asr_language or None
+            ),
             initial_prompt=settings.asr_initial_prompt or None,
         )
         segments = [
