@@ -875,6 +875,10 @@ function startPolling(taskId) {
 async function uploadFile(file, button, uploadMessage) {
   const formData = new FormData();
   formData.append("file", file);
+  const languageHint = selectedServerLanguageHint();
+  if (languageHint) {
+    formData.append("language_hint", languageHint);
+  }
 
   button.disabled = true;
   showScreen("capture");
@@ -951,6 +955,17 @@ function browserSpeechLanguage() {
 function selectedSpeechLanguage() {
   const selected = languageSelect.value || settingsLanguageSelect.value || "auto";
   return selected === "auto" ? browserSpeechLanguage() : selected;
+}
+
+function selectedServerLanguageHint() {
+  const selected = languageSelect.value || settingsLanguageSelect.value || "auto";
+  if (selected === "kk-KZ") {
+    return "kk";
+  }
+  if (selected === "ky-KG") {
+    return "ky";
+  }
+  return "";
 }
 
 function saveSelectedMic(deviceId) {

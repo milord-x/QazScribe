@@ -219,7 +219,11 @@ def _segments_from_transformers_result(
     ]
 
 
-def _transcribe_with_transformers(audio_path: Path, settings: Settings) -> TranscriptionResult:
+def _transcribe_with_transformers(
+    audio_path: Path,
+    settings: Settings,
+    language_hint: str | None = None,
+) -> TranscriptionResult:
     pipe = _load_transformers_pipeline(settings)
 
     try:
@@ -239,7 +243,7 @@ def _transcribe_with_transformers(audio_path: Path, settings: Settings) -> Trans
 
     segments = _assign_speakers(_segments_from_transformers_result(result, audio_path))
     full_transcript = " ".join(segment.text for segment in segments).strip()
-    detected_language = settings.asr_language or settings.asr_transformers_language
+    detected_language = language_hint or settings.asr_language or settings.asr_transformers_language
 
     return TranscriptionResult(
         detected_language=detected_language,
@@ -249,7 +253,11 @@ def _transcribe_with_transformers(audio_path: Path, settings: Settings) -> Trans
     )
 
 
-def transcribe_audio(audio_path: Path, settings: Settings) -> TranscriptionResult:
+def transcribe_audio(
+    audio_path: Path,
+    settings: Settings,
+    language_hint: str | None = None,
+) -> TranscriptionResult:
     if not audio_path.exists():
         raise ASRError("Converted audio file does not exist")
 
@@ -262,8 +270,10 @@ def transcribe_audio(audio_path: Path, settings: Settings) -> TranscriptionResul
             segments=[TranscriptionSegment(start=0.0, end=1.0, text=text)],
         )
 
+    normalized_language_hint = (language_hint or "").strip().lower() or None
+
     if settings.asr_backend.strip().lower() != "faster_whisper":
-        return _transcribe_with_transformers(audio_path, settings)
+        return _transcribe_with_transformers(audio_path, settings, normalized_language_hint)
 
     model = _load_faster_whisper_model(settings)
 
@@ -272,7 +282,7 @@ def transcribe_audio(audio_path: Path, settings: Settings) -> TranscriptionResul
             str(audio_path),
             beam_size=settings.asr_beam_size,
             vad_filter=settings.asr_vad_filter,
-            language=settings.asr_language or None,
+            language=normalized_language_hint or settings.asr_language or None,
             initial_prompt=settings.asr_initial_prompt or None,
         )
         segments = [
@@ -291,7 +301,7 @@ def transcribe_audio(audio_path: Path, settings: Settings) -> TranscriptionResul
     full_transcript = " ".join(segment.text for segment in segments).strip()
 
     return TranscriptionResult(
-        detected_language=getattr(info, "language", None),
+        detected_language=normalized_language_hint or getattr(info, "language", None),
         language_probability=getattr(info, "language_probability", None),
         full_transcript=full_transcript,
         segments=segments,

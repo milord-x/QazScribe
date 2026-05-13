@@ -3,7 +3,7 @@ import json
 import re
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile, status
 
 from backend.app.config import get_settings
 from backend.app.schemas.tasks import UploadResponse
@@ -64,7 +64,29 @@ def _speaker_count(transcription_dict: dict) -> int:
     return len(speakers) if speakers else 0
 
 
-def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
+LANGUAGE_HINTS = {
+    "kk": "kk",
+    "kk-kz": "kk",
+    "kazakh": "kk",
+    "ky": "ky",
+    "ky-kg": "ky",
+    "kyrgyz": "ky",
+}
+
+
+def _normalize_language_hint(language_hint: str | None) -> str | None:
+    normalized = (language_hint or "").strip().lower()
+    if normalized in {"", "auto"}:
+        return None
+    if normalized not in LANGUAGE_HINTS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported speech language",
+        )
+    return LANGUAGE_HINTS[normalized]
+
+
+def _process_uploaded_audio(task_id: str, source_path: Path, language_hint: str | None) -> None:
     output_path = settings.processed_path / task_id / "audio_16khz_mono.wav"
     transcript_path = settings.processed_path / task_id / "transcript.json"
     translation_path = settings.processed_path / task_id / "translation.json"
@@ -83,11 +105,14 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
             task_id,
             status="transcribing",
             progress=55,
-            message=f"Transcribing audio with {settings.asr_backend}",
+            message=(
+                f"Transcribing audio with {settings.asr_backend}"
+                + (f" ({language_hint})" if language_hint else " (auto)")
+            ),
             processed_path=_stored_path(converted_path),
             error="",
         )
-        transcription = transcribe_audio(converted_path, settings)
+        transcription = transcribe_audio(converted_path, settings, language_hint)
         transcription_dict = transcription.to_dict()
         speaker_preview = _format_speaker_preview(transcription_dict)
         duration_seconds = _duration_seconds(transcription_dict)
@@ -211,6 +236,7 @@ def _process_uploaded_audio(task_id: str, source_path: Path) -> None:
 async def upload_audio(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    language_hint: str | None = Form(default=None),
 ) -> UploadResponse:
     if not file.filename:
         raise HTTPException(
@@ -258,6 +284,7 @@ async def upload_audio(
             detail="Uploaded file is empty",
         )
 
+    normalized_language_hint = _normalize_language_hint(language_hint)
     create_task(task_id, safe_name, _stored_path(destination))
-    background_tasks.add_task(_process_uploaded_audio, task_id, destination)
+    background_tasks.add_task(_process_uploaded_audio, task_id, destination, normalized_language_hint)
     return UploadResponse(task_id=task_id, status="queued")
