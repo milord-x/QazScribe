@@ -16,6 +16,7 @@ const micSelect = document.querySelector("#mic-select");
 const settingsMicSelect = document.querySelector("#settings-mic-select");
 const languageSelect = document.querySelector("#language-select");
 const settingsLanguageSelect = document.querySelector("#settings-language-select");
+const settingsAsrProfileSelect = document.querySelector("#settings-asr-profile-select");
 const refreshMicsButton = document.querySelector("#refresh-mics");
 const requestMicAccessButton = document.querySelector("#request-mic-access");
 const micHelpEl = document.querySelector("#mic-help");
@@ -58,6 +59,7 @@ const MIC_STORAGE_KEY = "qazscribe.selectedMicrophoneId";
 const MIC_PERMISSION_STORAGE_KEY = "qazscribe.microphonePermissionGranted";
 const LANGUAGE_STORAGE_KEY = "qazscribe.speechLanguage";
 const SITE_LANGUAGE_STORAGE_KEY = "qazscribe.siteLanguage";
+const ASR_PROFILE_STORAGE_KEY = "qazscribe.asrProfile";
 
 const siteLanguages = [
   { code: "ru", label: "Рус" },
@@ -69,6 +71,12 @@ const speechLanguages = [
   { code: "auto", labelKey: "speechAuto" },
   { code: "kk-KZ", label: "Қазақша" },
   { code: "ky-KG", label: "Кыргызча" },
+];
+
+const asrProfiles = [
+  { code: "auto", labelKey: "asrProfileAuto" },
+  { code: "whisper", labelKey: "asrProfileWhisper" },
+  { code: "mms", labelKey: "asrProfileMms" },
 ];
 
 const translations = {
@@ -152,6 +160,7 @@ const translations = {
     allowAccess: "Разрешить доступ",
     activeMic: "Активный микрофон",
     draftLanguage: "Язык черновых субтитров",
+    asrProfile: "Модель распознавания",
     micHelp: "Если нужный микрофон не отображается, нажмите «Разрешить доступ», затем обновите список.",
     currentMode: "Текущий режим",
     recognition: "Распознавание",
@@ -161,6 +170,10 @@ const translations = {
     workModeValue: "Локальная обработка на сервере организации",
     export: "Экспорт",
     speechAuto: "Авто: казахский или кыргызский",
+    asrProfileAuto: "Авто: Whisper + кыргызская модель",
+    asrProfileWhisper: "Whisper",
+    asrProfileMms: "MMS кыргыз/казах",
+    mmsNeedsLanguage: "Для MMS выберите конкретный язык речи: Қазақша или Кыргызча.",
     noDocs: "Документы появятся после завершения обработки.",
     noTask: "Пока нет",
     taskWaiting: "Ожидание",
@@ -281,6 +294,7 @@ const translations = {
     allowAccess: "Рұқсат беру",
     activeMic: "Белсенді микрофон",
     draftLanguage: "Черновик субтитр тілі",
+    asrProfile: "Тану моделі",
     micHelp: "Қажетті микрофон көрінбесе, «Рұқсат беру» басып, тізімді жаңартыңыз.",
     currentMode: "Ағымдағы режим",
     recognition: "Тану",
@@ -290,6 +304,10 @@ const translations = {
     workModeValue: "Ұйым серверінде жергілікті өңдеу",
     export: "Экспорт",
     speechAuto: "Авто: қазақша немесе қырғызша",
+    asrProfileAuto: "Авто: Whisper + қырғыз моделі",
+    asrProfileWhisper: "Whisper",
+    asrProfileMms: "MMS қырғыз/қазақ",
+    mmsNeedsLanguage: "MMS үшін нақты сөйлеу тілін таңдаңыз: Қазақша немесе Кыргызча.",
     noDocs: "Құжаттар өңдеу аяқталғаннан кейін пайда болады.",
     noTask: "Әзірге жоқ",
     taskWaiting: "Күту",
@@ -410,6 +428,7 @@ const translations = {
     allowAccess: "Allow access",
     activeMic: "Active microphone",
     draftLanguage: "Draft subtitle language",
+    asrProfile: "Recognition model",
     micHelp: "If the required microphone is not visible, press Allow access, then refresh the list.",
     currentMode: "Current mode",
     recognition: "Recognition",
@@ -419,6 +438,10 @@ const translations = {
     workModeValue: "Local processing on the organization server",
     export: "Export",
     speechAuto: "Auto: Kazakh or Kyrgyz",
+    asrProfileAuto: "Auto: Whisper + Kyrgyz model",
+    asrProfileWhisper: "Whisper",
+    asrProfileMms: "MMS Kyrgyz/Kazakh",
+    mmsNeedsLanguage: "For MMS, choose a specific speech language: Kazakh or Kyrgyz.",
     noDocs: "Documents will appear after processing is complete.",
     noTask: "None yet",
     taskWaiting: "Waiting",
@@ -633,6 +656,7 @@ function applySiteLanguage(languageCode) {
   setElementText("#request-mic-access", "allowAccess");
   setElementText(".settings-mic-label span", "activeMic");
   setElementText(".settings-language-label span", "draftLanguage");
+  setElementText(".settings-asr-profile-label span", "asrProfile");
   if (micHelpEl.textContent === translations.ru.micHelp) {
     micHelpEl.textContent = t("micHelp");
   }
@@ -645,6 +669,7 @@ function applySiteLanguage(languageCode) {
   setElementText(".settings-list > div:nth-child(4) .status-label", "export");
 
   renderLanguageOptions();
+  renderAsrProfileOptions();
 }
 
 function showScreen(screenName) {
@@ -873,12 +898,20 @@ function startPolling(taskId) {
 }
 
 async function uploadFile(file, button, uploadMessage) {
+  const languageHint = selectedServerLanguageHint();
+  const asrProfile = selectedAsrProfile();
+  if (asrProfile === "mms" && !languageHint) {
+    showScreen("capture");
+    setTaskView({ error: t("mmsNeedsLanguage") });
+    return;
+  }
+
   const formData = new FormData();
   formData.append("file", file);
-  const languageHint = selectedServerLanguageHint();
   if (languageHint) {
     formData.append("language_hint", languageHint);
   }
+  formData.append("asr_profile", asrProfile);
 
   button.disabled = true;
   showScreen("capture");
@@ -968,6 +1001,10 @@ function selectedServerLanguageHint() {
   return "";
 }
 
+function selectedAsrProfile() {
+  return settingsAsrProfileSelect.value || "auto";
+}
+
 function saveSelectedMic(deviceId) {
   if (deviceId) {
     localStorage.setItem(MIC_STORAGE_KEY, deviceId);
@@ -1016,6 +1053,26 @@ function renderLanguageOptions() {
     : "auto";
   syncLanguageSelects(selected);
   saveSelectedLanguage(selected);
+}
+
+function saveSelectedAsrProfile(profileCode) {
+  localStorage.setItem(ASR_PROFILE_STORAGE_KEY, profileCode || "auto");
+}
+
+function renderAsrProfileOptions() {
+  const rememberedProfile = localStorage.getItem(ASR_PROFILE_STORAGE_KEY) || "auto";
+  settingsAsrProfileSelect.innerHTML = "";
+  asrProfiles.forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.code;
+    option.textContent = t(profile.labelKey);
+    settingsAsrProfileSelect.appendChild(option);
+  });
+  const selected = asrProfiles.some((profile) => profile.code === rememberedProfile)
+    ? rememberedProfile
+    : "auto";
+  settingsAsrProfileSelect.value = selected;
+  saveSelectedAsrProfile(selected);
 }
 
 function renderMicOptions(devices) {
@@ -1365,6 +1422,10 @@ requestMicAccessButton.addEventListener("click", requestMicrophoneAccess);
     saveSelectedLanguage(select.value);
     syncLanguageSelects(select.value);
   });
+});
+
+settingsAsrProfileSelect.addEventListener("change", () => {
+  saveSelectedAsrProfile(settingsAsrProfileSelect.value);
 });
 
 if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {

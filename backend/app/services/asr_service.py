@@ -37,6 +37,11 @@ _model_key: tuple[str, ...] | None = None
 _model_lock = Lock()
 FASTER_WHISPER_LANGUAGE_HINTS = {"kk"}
 KYRGYZ_MODEL_ID = "nineninesix/kyrgyz-whisper-medium"
+MMS_MODEL_ID = "facebook/mms-1b-all"
+MMS_LANGUAGE_ADAPTERS = {
+    "kk": "kaz",
+    "ky": "kir",
+}
 
 
 def _assign_speakers(segments: list[TranscriptionSegment]) -> list[TranscriptionSegment]:
@@ -60,6 +65,28 @@ def _wav_duration_seconds(audio_path: Path) -> float:
             return frames / float(rate) if rate else 0.0
     except wave.Error:
         return 0.0
+
+
+def _read_wav_mono_float32(audio_path: Path):
+    try:
+        import numpy as np
+
+        with wave.open(str(audio_path), "rb") as wav_file:
+            sample_width = wav_file.getsampwidth()
+            channels = wav_file.getnchannels()
+            frames = wav_file.readframes(wav_file.getnframes())
+
+        if sample_width != 2:
+            raise ASRError("MMS ASR expects 16-bit PCM WAV after conversion")
+
+        audio = np.frombuffer(frames, dtype=np.int16).astype("float32") / 32768.0
+        if channels > 1:
+            audio = audio.reshape(-1, channels).mean(axis=1)
+        return audio
+    except ASRError:
+        raise
+    except Exception as exc:
+        raise ASRError(f"Could not read WAV audio for MMS ASR: {exc}") from exc
 
 
 def _load_faster_whisper_model(settings: Settings):
@@ -189,6 +216,53 @@ def _load_transformers_pipeline(settings: Settings):
             raise ASRError(f"Could not load Hugging Face ASR model: {exc}") from exc
 
 
+def _load_mms_model(settings: Settings, target_lang: str):
+    global _model, _model_key
+
+    model_key = (
+        "mms_ctc",
+        MMS_MODEL_ID,
+        target_lang,
+        settings.asr_device,
+        settings.asr_compute_type,
+    )
+
+    with _model_lock:
+        if _model is not None and _model_key == model_key:
+            return _model
+
+        try:
+            import torch
+            from transformers import AutoProcessor, Wav2Vec2ForCTC
+
+            cuda_requested = settings.asr_device.startswith("cuda")
+            device = "cuda:0" if cuda_requested and torch.cuda.is_available() else "cpu"
+            torch_dtype = (
+                torch.float16
+                if device.startswith("cuda") and "float16" in settings.asr_compute_type
+                else torch.float32
+            )
+
+            processor = AutoProcessor.from_pretrained(MMS_MODEL_ID, target_lang=target_lang)
+            model = Wav2Vec2ForCTC.from_pretrained(
+                MMS_MODEL_ID,
+                target_lang=target_lang,
+                ignore_mismatched_sizes=True,
+                torch_dtype=torch_dtype,
+            )
+            if hasattr(processor, "tokenizer") and hasattr(processor.tokenizer, "set_target_lang"):
+                processor.tokenizer.set_target_lang(target_lang)
+            if hasattr(model, "load_adapter"):
+                model.load_adapter(target_lang)
+            model.to(device)
+            model.eval()
+            _model = (processor, model, device)
+            _model_key = model_key
+            return _model
+        except Exception as exc:
+            raise ASRError(f"Could not load MMS ASR model: {exc}") from exc
+
+
 def _segments_from_transformers_result(
     result: dict[str, Any],
     audio_path: Path,
@@ -260,10 +334,52 @@ def _transcribe_with_transformers(
     )
 
 
+def _transcribe_with_mms(
+    audio_path: Path,
+    settings: Settings,
+    language_hint: str | None,
+) -> TranscriptionResult:
+    if language_hint not in MMS_LANGUAGE_ADAPTERS:
+        raise ASRError("MMS ASR requires Kazakh or Kyrgyz language selection")
+
+    try:
+        import torch
+
+        target_lang = MMS_LANGUAGE_ADAPTERS[language_hint]
+        processor, model, device = _load_mms_model(settings, target_lang)
+        audio = _read_wav_mono_float32(audio_path)
+        inputs = processor(audio, sampling_rate=16_000, return_tensors="pt")
+        inputs = {key: value.to(device) for key, value in inputs.items()}
+
+        with torch.no_grad():
+            logits = model(**inputs).logits
+
+        predicted_ids = torch.argmax(logits, dim=-1)[0]
+        text = processor.decode(predicted_ids).strip()
+    except ASRError:
+        raise
+    except Exception as exc:
+        raise ASRError(f"MMS ASR transcription failed: {exc}") from exc
+
+    duration = round(_wav_duration_seconds(audio_path), 3)
+    segments = [
+        TranscriptionSegment(start=0.0, end=duration, text=text)
+    ] if text else []
+    segments = _assign_speakers(segments)
+
+    return TranscriptionResult(
+        detected_language=language_hint,
+        language_probability=None,
+        full_transcript=text,
+        segments=segments,
+    )
+
+
 def transcribe_audio(
     audio_path: Path,
     settings: Settings,
     language_hint: str | None = None,
+    asr_profile: str | None = None,
 ) -> TranscriptionResult:
     if not audio_path.exists():
         raise ASRError("Converted audio file does not exist")
@@ -278,8 +394,16 @@ def transcribe_audio(
         )
 
     normalized_language_hint = (language_hint or "").strip().lower() or None
+    normalized_asr_profile = (asr_profile or "").strip().lower() or "auto"
 
-    if normalized_language_hint == "ky" and settings.asr_backend.strip().lower() == "faster_whisper":
+    if normalized_asr_profile == "mms":
+        return _transcribe_with_mms(audio_path, settings, normalized_language_hint)
+
+    if (
+        normalized_language_hint == "ky"
+        and settings.asr_backend.strip().lower() == "faster_whisper"
+        and normalized_asr_profile in {"auto", "whisper"}
+    ):
         kyrgyz_settings = settings.model_copy(
             update={
                 "asr_backend": "transformers_whisper",

@@ -72,6 +72,7 @@ LANGUAGE_HINTS = {
     "ky-kg": "ky",
     "kyrgyz": "ky",
 }
+ASR_PROFILES = {"auto", "whisper", "mms"}
 
 
 def _normalize_language_hint(language_hint: str | None) -> str | None:
@@ -86,7 +87,22 @@ def _normalize_language_hint(language_hint: str | None) -> str | None:
     return LANGUAGE_HINTS[normalized]
 
 
-def _process_uploaded_audio(task_id: str, source_path: Path, language_hint: str | None) -> None:
+def _normalize_asr_profile(asr_profile: str | None) -> str:
+    normalized = (asr_profile or "auto").strip().lower()
+    if normalized not in ASR_PROFILES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported ASR profile",
+        )
+    return normalized
+
+
+def _process_uploaded_audio(
+    task_id: str,
+    source_path: Path,
+    language_hint: str | None,
+    asr_profile: str,
+) -> None:
     output_path = settings.processed_path / task_id / "audio_16khz_mono.wav"
     transcript_path = settings.processed_path / task_id / "transcript.json"
     translation_path = settings.processed_path / task_id / "translation.json"
@@ -106,13 +122,13 @@ def _process_uploaded_audio(task_id: str, source_path: Path, language_hint: str 
             status="transcribing",
             progress=55,
             message=(
-                f"Transcribing audio with {settings.asr_backend}"
+                f"Transcribing audio with {settings.asr_backend}/{asr_profile}"
                 + (f" ({language_hint})" if language_hint else " (auto)")
             ),
             processed_path=_stored_path(converted_path),
             error="",
         )
-        transcription = transcribe_audio(converted_path, settings, language_hint)
+        transcription = transcribe_audio(converted_path, settings, language_hint, asr_profile)
         transcription_dict = transcription.to_dict()
         speaker_preview = _format_speaker_preview(transcription_dict)
         duration_seconds = _duration_seconds(transcription_dict)
@@ -237,6 +253,7 @@ async def upload_audio(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     language_hint: str | None = Form(default=None),
+    asr_profile: str | None = Form(default="auto"),
 ) -> UploadResponse:
     if not file.filename:
         raise HTTPException(
@@ -285,6 +302,13 @@ async def upload_audio(
         )
 
     normalized_language_hint = _normalize_language_hint(language_hint)
+    normalized_asr_profile = _normalize_asr_profile(asr_profile)
     create_task(task_id, safe_name, _stored_path(destination))
-    background_tasks.add_task(_process_uploaded_audio, task_id, destination, normalized_language_hint)
+    background_tasks.add_task(
+        _process_uploaded_audio,
+        task_id,
+        destination,
+        normalized_language_hint,
+        normalized_asr_profile,
+    )
     return UploadResponse(task_id=task_id, status="queued")
