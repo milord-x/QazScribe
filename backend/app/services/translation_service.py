@@ -24,9 +24,10 @@ class TranslationResult:
 
 def _provider_configured(settings: Settings) -> bool:
     return bool(
-        settings.llm_provider in {"openai_compatible", "ollama"}
+        settings.llm_provider in {"gemini", "openai_compatible", "ollama"}
         and settings.llm_api_base_url
         and settings.llm_model
+        and (settings.llm_provider != "gemini" or settings.llm_api_key)
     )
 
 
@@ -63,11 +64,7 @@ def _chat_completion(settings: Settings, system_prompt: str, user_prompt: str) -
 
 def _fallback_translation(text: str, error: str | None = None) -> TranslationResult:
     if text.strip():
-        translated_text = (
-            "Казахский перевод отключен в локальном режиме без внешнего LLM-сервиса. "
-            "Ниже сохранен исходный распознанный текст.\n\n"
-            f"{text.strip()}"
-        )
+        translated_text = text.strip()
     else:
         translated_text = (
             "Казахский перевод не сформирован, потому что распознанный текст пустой "
@@ -96,7 +93,8 @@ def translate_to_kazakh(text: str, settings: Settings) -> TranslationResult:
             "You translate meeting and conference transcripts into clear Kazakh.",
             (
                 "Translate the following transcript into Kazakh. Preserve meaning, "
-                "names, numbers, and technical terms where appropriate.\n\n"
+                "names, numbers, and technical terms where appropriate. Return only "
+                "the translated Kazakh text without explanations or notes.\n\n"
                 f"{text}"
             ),
         )

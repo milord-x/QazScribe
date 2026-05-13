@@ -33,9 +33,10 @@ class StructuredNotes:
 
 def _provider_configured(settings: Settings) -> bool:
     return bool(
-        settings.llm_provider in {"openai_compatible", "ollama"}
+        settings.llm_provider in {"gemini", "openai_compatible", "ollama"}
         and settings.llm_api_base_url
         and settings.llm_model
+        and (settings.llm_provider != "gemini" or settings.llm_api_key)
     )
 
 
@@ -52,6 +53,22 @@ def _as_text_list(value: Any) -> list[str]:
     if isinstance(value, str) and value.strip():
         return [value.strip()]
     return []
+
+
+def _parse_json_object(content: str) -> dict[str, Any]:
+    cleaned = content.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise
+        return json.loads(cleaned[start : end + 1])
 
 
 def _fallback_notes(
@@ -104,8 +121,9 @@ def _chat_completion(settings: Settings, system_prompt: str, user_prompt: str) -
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.2,
-        "response_format": {"type": "json_object"},
     }
+    if settings.llm_provider != "gemini":
+        payload["response_format"] = {"type": "json_object"}
 
     try:
         response = httpx.post(
@@ -143,7 +161,7 @@ def _notes_from_provider(
             f"Kazakh translation:\n{kazakh_translation}"
         ),
     )
-    parsed = json.loads(content)
+    parsed = _parse_json_object(content)
 
     return StructuredNotes(
         title=str(parsed.get("title") or "Qtranscript: протокол встречи"),
