@@ -9,10 +9,10 @@ from backend.app.config import get_settings
 from backend.app.schemas.tasks import UploadResponse
 from backend.app.services.asr_service import ASRError, transcribe_audio
 from backend.app.services.audio_service import AudioConversionError, convert_to_wav_16khz_mono
-from backend.app.services.document_service import DocumentGenerationError, generate_documents
+from backend.app.services.document_service import DOCUMENT_FORMATS
 from backend.app.services.summary_service import generate_structured_notes
 from backend.app.services.translation_service import translate_to_kazakh
-from backend.app.storage.task_store import create_task, get_task, update_task
+from backend.app.storage.task_store import create_task, update_task
 
 
 router = APIRouter(prefix="/api", tags=["upload"])
@@ -178,40 +178,17 @@ def _process_uploaded_audio(
 
         update_task(
             task_id,
-            status="generating_documents",
-            progress=94,
-            message="Generating TXT, HTML, DOCX, and PDF documents",
+            status="completed",
+            progress=100,
+            message="Processing completed. Documents will be generated on download.",
             result_available=True,
             summary_path=_stored_path(summary_path),
             summary_preview=notes.short_summary[:1200],
             detailed_summary_preview=notes.detailed_summary[:2000],
-            error="",
-        )
-        task = get_task(task_id) or {}
-        document_paths = generate_documents(
-            task_id,
-            settings.outputs_path / task_id,
-            transcription.detected_language,
-            transcription_dict,
-            translation.to_dict(),
-            notes.to_dict(),
-            {
-                "recording_started_at": task.get("created_at"),
-                "recording_duration_seconds": duration_seconds,
-                "speaker_count": speaker_count,
+            downloads={
+                file_format: f"/api/download/{task_id}/{file_format}"
+                for file_format in sorted(DOCUMENT_FORMATS)
             },
-        )
-        downloads = {
-            file_format: f"/api/download/{task_id}/{file_format}"
-            for file_format in document_paths
-        }
-        update_task(
-            task_id,
-            status="completed",
-            progress=100,
-            message="Processing completed. Documents are ready for download.",
-            result_available=True,
-            downloads=downloads,
             error="",
         )
     except AudioConversionError as exc:
@@ -228,14 +205,6 @@ def _process_uploaded_audio(
             status="failed",
             progress=100,
             message="Speech transcription failed",
-            error=str(exc),
-        )
-    except DocumentGenerationError as exc:
-        update_task(
-            task_id,
-            status="failed",
-            progress=100,
-            message="Document generation failed",
             error=str(exc),
         )
     except Exception as exc:

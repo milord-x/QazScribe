@@ -3,7 +3,7 @@ from html import escape
 import json
 from pathlib import Path
 import textwrap
-from typing import Any
+from typing import Any, Callable
 
 from docx import Document
 from reportlab.lib.pagesizes import A4
@@ -29,6 +29,18 @@ def _text(value: Any) -> str:
 def _section(title: str, body: Any) -> str:
     content = _text(body).strip() or "Not available."
     return f"\n{title}\n{'=' * len(title)}\n{content}\n"
+
+
+DOCUMENT_FORMATS = {"txt", "srt", "vtt", "json", "html", "docx", "pdf"}
+DOCUMENT_FILENAMES = {
+    "txt": "qtranscript_result.txt",
+    "srt": "qtranscript_result.srt",
+    "vtt": "qtranscript_result.vtt",
+    "json": "qtranscript_result.json",
+    "html": "qtranscript_result.html",
+    "docx": "qtranscript_result.docx",
+    "pdf": "qtranscript_result.pdf",
+}
 
 
 def _font_name() -> str:
@@ -61,7 +73,7 @@ def _build_payload(
     speaker_names = sorted({segment.get("speaker", "Спикер 1") for segment in segments})
     duration = metadata.get("recording_duration_seconds") or _recording_duration(segments)
     return {
-        "title": "Qtranscript: конспект записи",
+        "title": "Qtranscript: протокол записи",
         "task_id": task_id,
         "processed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "recording_started_at": metadata.get("recording_started_at") or "unknown",
@@ -86,20 +98,28 @@ def _build_payload(
 def _plain_text(payload: dict[str, Any]) -> str:
     parts = [
         payload["title"],
-        f"Номер задачи: {payload['task_id']}",
-        f"Время начала записи: {payload['recording_started_at']}",
-        f"Длительность записи: {payload['recording_duration']}",
-        f"Количество спикеров: {payload['speaker_count']}",
-        f"Обработано: {payload['processed_at']}",
-        f"Определённый язык: {payload['detected_language']}",
+        _section(
+            "Сведения о записи",
+            "\n".join(
+                [
+                    f"Номер задачи: {payload['task_id']}",
+                    f"Время начала записи: {payload['recording_started_at']}",
+                    f"Длительность записи: {payload['recording_duration']}",
+                    f"Количество спикеров: {payload['speaker_count']}",
+                    f"Спикеры: {', '.join(payload['speaker_names']) or 'не определены'}",
+                    f"Обработано: {payload['processed_at']}",
+                    f"Определённый язык: {payload['detected_language']}",
+                ]
+            ),
+        ),
+        _section("Казахская версия", payload["kazakh_translation"]),
         _section("Полная расшифровка по спикерам", payload["speaker_transcript"]),
-        _section("Основной полный конспект", payload["detailed_summary"]),
+        _section("Основной конспект", payload["detailed_summary"]),
         _section("Краткое резюме", payload["short_summary"]),
         _section("Ключевые пункты", payload["key_points"]),
         _section("Решения", payload["decisions"]),
         _section("Задачи", payload["action_items"]),
-        _section("Казахская версия", payload["kazakh_translation"]),
-        _section("Финальные заметки", payload["final_notes"]),
+        _section("Открытые вопросы", payload["risks_or_open_questions"]),
     ]
     return "\n".join(parts).strip() + "\n"
 
@@ -113,14 +133,14 @@ def _html(payload: dict[str, Any]) -> str:
         return f"<p>{escape(_text(value).strip() or 'Not available.')}</p>"
 
     sections = [
+        ("Казахская версия", payload["kazakh_translation"]),
         ("Полная расшифровка по спикерам", payload["speaker_transcript"]),
-        ("Основной полный конспект", payload["detailed_summary"]),
+        ("Основной конспект", payload["detailed_summary"]),
         ("Краткое резюме", payload["short_summary"]),
         ("Ключевые пункты", payload["key_points"]),
         ("Решения", payload["decisions"]),
         ("Задачи", payload["action_items"]),
-        ("Казахская версия", payload["kazakh_translation"]),
-        ("Финальные заметки", payload["final_notes"]),
+        ("Открытые вопросы", payload["risks_or_open_questions"]),
     ]
     body = "\n".join(
         f"<section><h2>{escape(title)}</h2>{list_or_paragraph(value)}</section>"
@@ -145,6 +165,7 @@ def _html(payload: dict[str, Any]) -> str:
     <p class="meta">Время начала записи: {escape(payload["recording_started_at"])}</p>
     <p class="meta">Длительность записи: {escape(payload["recording_duration"])}</p>
     <p class="meta">Количество спикеров: {escape(str(payload["speaker_count"]))}</p>
+    <p class="meta">Спикеры: {escape(", ".join(payload["speaker_names"]) or "не определены")}</p>
     <p class="meta">Обработано: {escape(payload["processed_at"])}</p>
     <p class="meta">Определённый язык: {escape(payload["detected_language"])}</p>
     {body}
@@ -249,18 +270,19 @@ def _write_docx(path: Path, payload: dict[str, Any]) -> None:
     document.add_paragraph(f"Время начала записи: {payload['recording_started_at']}")
     document.add_paragraph(f"Длительность записи: {payload['recording_duration']}")
     document.add_paragraph(f"Количество спикеров: {payload['speaker_count']}")
+    document.add_paragraph(f"Спикеры: {', '.join(payload['speaker_names']) or 'не определены'}")
     document.add_paragraph(f"Обработано: {payload['processed_at']}")
     document.add_paragraph(f"Определённый язык: {payload['detected_language']}")
 
     for title, key in [
+        ("Казахская версия", "kazakh_translation"),
         ("Полная расшифровка по спикерам", "speaker_transcript"),
-        ("Основной полный конспект", "detailed_summary"),
+        ("Основной конспект", "detailed_summary"),
         ("Краткое резюме", "short_summary"),
         ("Ключевые пункты", "key_points"),
         ("Решения", "decisions"),
         ("Задачи", "action_items"),
-        ("Казахская версия", "kazakh_translation"),
-        ("Финальные заметки", "final_notes"),
+        ("Открытые вопросы", "risks_or_open_questions"),
     ]:
         document.add_heading(title, level=1)
         value = payload[key]
@@ -316,20 +338,21 @@ def _write_pdf(path: Path, payload: dict[str, Any]) -> None:
         Paragraph(escape(f"Время начала записи: {payload['recording_started_at']}"), normal),
         Paragraph(escape(f"Длительность записи: {payload['recording_duration']}"), normal),
         Paragraph(escape(f"Количество спикеров: {payload['speaker_count']}"), normal),
+        Paragraph(escape(f"Спикеры: {', '.join(payload['speaker_names']) or 'не определены'}"), normal),
         Paragraph(escape(f"Обработано: {payload['processed_at']}"), normal),
         Paragraph(escape(f"Определённый язык: {payload['detected_language']}"), normal),
         Spacer(1, 8),
     ]
 
     for section_title, key in [
+        ("Казахская версия", "kazakh_translation"),
         ("Полная расшифровка по спикерам", "speaker_transcript"),
-        ("Основной полный конспект", "detailed_summary"),
+        ("Основной конспект", "detailed_summary"),
         ("Краткое резюме", "short_summary"),
         ("Ключевые пункты", "key_points"),
         ("Решения", "decisions"),
         ("Задачи", "action_items"),
-        ("Казахская версия", "kazakh_translation"),
-        ("Финальные заметки", "final_notes"),
+        ("Открытые вопросы", "risks_or_open_questions"),
     ]:
         story.append(Paragraph(escape(section_title), heading))
         text = _text(payload[key]).strip() or "Not available."
@@ -350,39 +373,67 @@ def generate_documents(
 ) -> dict[str, Path]:
     try:
         output_dir.mkdir(parents=True, exist_ok=True)
-        payload = _build_payload(task_id, detected_language, transcript, translation, summary, metadata)
-
         paths = {
-            "txt": output_dir / "qazscribe_result.txt",
-            "srt": output_dir / "qazscribe_result.srt",
-            "vtt": output_dir / "qazscribe_result.vtt",
-            "json": output_dir / "qazscribe_result.json",
-            "html": output_dir / "qazscribe_result.html",
-            "docx": output_dir / "qazscribe_result.docx",
-            "pdf": output_dir / "qazscribe_result.pdf",
+            file_format: output_dir / filename
+            for file_format, filename in DOCUMENT_FILENAMES.items()
         }
 
-        paths["txt"].write_text(_plain_text(payload), encoding="utf-8")
-        paths["srt"].write_text(_srt(transcript), encoding="utf-8")
-        paths["vtt"].write_text(_vtt(transcript), encoding="utf-8")
-        paths["json"].write_text(
-            json.dumps(
-                {
-                    "task_id": task_id,
-                    "detected_language": detected_language,
-                    "transcript": transcript,
-                    "translation": translation,
-                    "summary": summary,
-                    "metadata": metadata or {},
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
-        paths["html"].write_text(_html(payload), encoding="utf-8")
-        _write_docx(paths["docx"], payload)
-        _write_pdf(paths["pdf"], payload)
+        for file_format, path in paths.items():
+            generate_document(
+                task_id,
+                path,
+                file_format,
+                detected_language,
+                transcript,
+                translation,
+                summary,
+                metadata,
+            )
         return paths
+    except Exception as exc:
+        raise DocumentGenerationError(f"Document generation failed: {exc}") from exc
+
+
+def generate_document(
+    task_id: str,
+    path: Path,
+    file_format: str,
+    detected_language: str | None,
+    transcript: dict[str, Any],
+    translation: dict[str, Any],
+    summary: dict[str, Any],
+    metadata: dict[str, Any] | None = None,
+) -> Path:
+    if file_format not in DOCUMENT_FORMATS:
+        raise DocumentGenerationError(f"Unsupported document format: {file_format}")
+
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = _build_payload(task_id, detected_language, transcript, translation, summary, metadata)
+        writers: dict[str, Callable[[], None]] = {
+            "txt": lambda: path.write_text(_plain_text(payload), encoding="utf-8"),
+            "srt": lambda: path.write_text(_srt(transcript), encoding="utf-8"),
+            "vtt": lambda: path.write_text(_vtt(transcript), encoding="utf-8"),
+            "json": lambda: path.write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "detected_language": detected_language,
+                        "transcript": transcript,
+                        "translation": translation,
+                        "summary": summary,
+                        "metadata": metadata or {},
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            ),
+            "html": lambda: path.write_text(_html(payload), encoding="utf-8"),
+            "docx": lambda: _write_docx(path, payload),
+            "pdf": lambda: _write_pdf(path, payload),
+        }
+        writers[file_format]()
+        return path
     except Exception as exc:
         raise DocumentGenerationError(f"Document generation failed: {exc}") from exc
