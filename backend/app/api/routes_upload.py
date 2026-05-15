@@ -162,7 +162,7 @@ def _process_uploaded_audio(
             progress=86,
             message="Generating structured meeting notes",
             translation_path=_stored_path(translation_path),
-            translation_preview=translation.translated_text[:1200],
+            translation_preview=translation.translated_text,
             error="",
         )
         notes = generate_structured_notes(
