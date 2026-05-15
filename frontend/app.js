@@ -146,12 +146,11 @@ const translations = {
     progress: "Готовность",
     duration: "Длительность",
     speakers: "Спикеры",
-    transcript: "Распознанный текст",
+    transcript: "Оригинальная речь",
     detectedLanguage: "Определённый язык",
     speakerTranscript: "Полная расшифровка по спикерам",
     kazakhVersion: "Перевод",
-    kazakhText: "Казахский текст",
-    kyrgyzText: "Кыргызский текст",
+    translatedText: "Переведённый текст",
     fullNotes: "Основной полный конспект",
     shortSummary: "Краткое резюме",
     downloads: "Скачать результат",
@@ -282,12 +281,11 @@ const translations = {
     progress: "Дайындық",
     duration: "Ұзақтығы",
     speakers: "Спикерлер",
-    transcript: "Танылған мәтін",
+    transcript: "Түпнұсқа сөз",
     detectedLanguage: "Анықталған тіл",
     speakerTranscript: "Спикерлер бойынша толық мәтін",
     kazakhVersion: "Аударма",
-    kazakhText: "Қазақша мәтін",
-    kyrgyzText: "Қырғызша мәтін",
+    translatedText: "Аударылған мәтін",
     fullNotes: "Негізгі толық конспект",
     shortSummary: "Қысқа түйіндеме",
     downloads: "Нәтижені жүктеу",
@@ -418,12 +416,11 @@ const translations = {
     progress: "Progress",
     duration: "Duration",
     speakers: "Speakers",
-    transcript: "Recognized text",
+    transcript: "Original speech",
     detectedLanguage: "Detected language",
     speakerTranscript: "Full speaker transcript",
     kazakhVersion: "Translation",
-    kazakhText: "Kazakh text",
-    kyrgyzText: "Kyrgyz text",
+    translatedText: "Translated text",
     fullNotes: "Main full notes",
     shortSummary: "Short summary",
     downloads: "Download result",
@@ -645,7 +642,7 @@ function applySiteLanguage(languageCode) {
   setElementText("#result-title", "transcript");
   setElementText("#result-title + p .status-label", "detectedLanguage");
   setElementText("#speakers-title", "speakerTranscript");
-  setElementText("#translation-title", "kazakhVersion");
+  setElementText("#translation-title", "translatedText");
   setElementText("#notes-title", "fullNotes");
   setElementText("#summary-title", "shortSummary");
   setElementText("#downloads-title", "downloads");
@@ -726,14 +723,11 @@ async function readResponsePayload(response) {
   };
 }
 
-function translationTitle(targetLanguage) {
-  if (targetLanguage === "kk") {
-    return t("kazakhText");
+function displayTaskId(taskId) {
+  if (!taskId) {
+    return t("noTask");
   }
-  if (targetLanguage === "ky") {
-    return t("kyrgyzText");
-  }
-  return t("kazakhVersion");
+  return String(taskId).split("-", 1)[0];
 }
 
 async function loadHealth() {
@@ -771,7 +765,7 @@ function setTaskView({
   downloads,
 }) {
   if (taskId !== undefined) {
-    taskIdEl.textContent = taskId || t("noTask");
+    taskIdEl.textContent = displayTaskId(taskId);
   }
   if (status !== undefined) {
     taskStatusEl.textContent = statusLabel(status);
@@ -797,7 +791,7 @@ function setTaskView({
     translationPreviewEl
       .closest("section")
       ?.querySelector("h2")
-      ?.replaceChildren(document.createTextNode(translationTitle(translationTargetLanguage)));
+      ?.replaceChildren(document.createTextNode(t("translatedText")));
   }
   if (transcriptPreview !== undefined) {
     setTextValue(

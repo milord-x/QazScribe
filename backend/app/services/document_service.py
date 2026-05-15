@@ -63,8 +63,8 @@ DOCUMENT_LABELS = {
         "recording_started_at": "Время начала записи",
         "recording_duration": "Длительность записи",
         "speech_language": "Язык речи",
-        "original_text": "Оригинальный текст",
-        "translated_text": "{language} текст",
+        "original_text": "Оригинальная речь",
+        "translated_text": "Переведённый текст",
         "not_available": "Нет данных.",
         "unknown_language": "не определён",
     },
@@ -75,8 +75,8 @@ DOCUMENT_LABELS = {
         "recording_started_at": "Жазба басталған уақыт",
         "recording_duration": "Жазба ұзақтығы",
         "speech_language": "Сөйлеу тілі",
-        "original_text": "Түпнұсқа мәтін",
-        "translated_text": "{language} мәтін",
+        "original_text": "Түпнұсқа сөз",
+        "translated_text": "Аударылған мәтін",
         "not_available": "Дерек жоқ.",
         "unknown_language": "анықталмаған",
     },
@@ -87,8 +87,8 @@ DOCUMENT_LABELS = {
         "recording_started_at": "Recording start",
         "recording_duration": "Recording duration",
         "speech_language": "Speech language",
-        "original_text": "Original text",
-        "translated_text": "{language} text",
+        "original_text": "Original speech",
+        "translated_text": "Translated text",
         "not_available": "Not available.",
         "unknown_language": "unknown",
     },
@@ -157,7 +157,6 @@ def _build_payload(
     speaker_names = sorted({segment.get("speaker", "Спикер 1") for segment in segments})
     duration = metadata.get("recording_duration_seconds") or _recording_duration(segments)
     target_language = translation.get("target_language") or "kk"
-    target_language_label = _language_label(target_language, ui_language)
     detected_language_value = detected_language or transcript.get("detected_language")
     return {
         "title": labels["title"],
@@ -172,7 +171,7 @@ def _build_payload(
         "detected_language": detected_language_value or "unknown",
         "detected_language_label": _language_label(detected_language_value, ui_language),
         "translation_target_language": target_language,
-        "translation_title": labels["translated_text"].format(language=target_language_label),
+        "translation_title": labels["translated_text"],
         "original_transcript": transcript.get("full_transcript") or "",
         "speaker_transcript": _speaker_transcript(segments),
         "translated_text": translation.get("translated_text") or "",
