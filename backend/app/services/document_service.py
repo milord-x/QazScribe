@@ -65,6 +65,7 @@ DOCUMENT_LABELS = {
         "speech_language": "Язык речи",
         "original_text": "Оригинальная речь",
         "translated_text": "Переведённый текст",
+        "speaker_transcript": "Расшифровка по спикерам",
         "not_available": "Нет данных.",
         "unknown_language": "не определён",
     },
@@ -77,6 +78,7 @@ DOCUMENT_LABELS = {
         "speech_language": "Сөйлеу тілі",
         "original_text": "Түпнұсқа сөз",
         "translated_text": "Аударылған мәтін",
+        "speaker_transcript": "Спикерлер бойынша мәтін",
         "not_available": "Дерек жоқ.",
         "unknown_language": "анықталмаған",
     },
@@ -89,6 +91,7 @@ DOCUMENT_LABELS = {
         "speech_language": "Speech language",
         "original_text": "Original speech",
         "translated_text": "Translated text",
+        "speaker_transcript": "Speaker transcript",
         "not_available": "Not available.",
         "unknown_language": "unknown",
     },
@@ -203,6 +206,7 @@ def _plain_text(payload: dict[str, Any]) -> str:
         ),
         _section(labels["original_text"], payload["original_transcript"]),
         _section(payload["translation_title"], payload["translated_text"]),
+        _section(labels["speaker_transcript"], payload["speaker_transcript"]),
     ]
     return "\n".join(parts).strip() + "\n"
 
@@ -220,6 +224,7 @@ def _html(payload: dict[str, Any]) -> str:
     sections = [
         (labels["original_text"], payload["original_transcript"]),
         (payload["translation_title"], payload["translated_text"]),
+        (labels["speaker_transcript"], payload["speaker_transcript"]),
     ]
     body = "\n".join(
         f"<section><h2>{escape(title)}</h2>{list_or_paragraph(value)}</section>"
@@ -351,6 +356,7 @@ def _write_docx(path: Path, payload: dict[str, Any]) -> None:
     for title, key in [
         (labels["original_text"], "original_transcript"),
         (payload["translation_title"], "translated_text"),
+        (labels["speaker_transcript"], "speaker_transcript"),
     ]:
         document.add_heading(title, level=1)
         value = payload[key]
@@ -413,6 +419,7 @@ def _write_pdf(path: Path, payload: dict[str, Any]) -> None:
     for section_title, key in [
         (labels["original_text"], "original_transcript"),
         (payload["translation_title"], "translated_text"),
+        (labels["speaker_transcript"], "speaker_transcript"),
     ]:
         story.append(Paragraph(escape(section_title), heading))
         text = _text(payload[key]).strip() or labels["not_available"]
