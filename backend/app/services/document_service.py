@@ -42,8 +42,56 @@ DOCUMENT_FILENAMES = {
     "pdf": "qtranscript_result.pdf",
 }
 LANGUAGE_LABELS = {
-    "kk": "Казахский",
-    "ky": "Кыргызский",
+    "ru": {
+        "kk": "Казахский",
+        "ky": "Кыргызский",
+    },
+    "kk": {
+        "kk": "Қазақша",
+        "ky": "Қырғызша",
+    },
+    "en": {
+        "kk": "Kazakh",
+        "ky": "Kyrgyz",
+    },
+}
+DOCUMENT_LABELS = {
+    "ru": {
+        "title": "Qtranscript: текст записи",
+        "meta": "Сведения",
+        "task_id": "Номер задачи",
+        "recording_started_at": "Время начала записи",
+        "recording_duration": "Длительность записи",
+        "speech_language": "Язык речи",
+        "original_text": "Оригинальный текст",
+        "translated_text": "{language} текст",
+        "not_available": "Нет данных.",
+        "unknown_language": "не определён",
+    },
+    "kk": {
+        "title": "Qtranscript: жазба мәтіні",
+        "meta": "Мәлімет",
+        "task_id": "Тапсырма нөмірі",
+        "recording_started_at": "Жазба басталған уақыт",
+        "recording_duration": "Жазба ұзақтығы",
+        "speech_language": "Сөйлеу тілі",
+        "original_text": "Түпнұсқа мәтін",
+        "translated_text": "{language} мәтін",
+        "not_available": "Дерек жоқ.",
+        "unknown_language": "анықталмаған",
+    },
+    "en": {
+        "title": "Qtranscript: recording text",
+        "meta": "Details",
+        "task_id": "Task number",
+        "recording_started_at": "Recording start",
+        "recording_duration": "Recording duration",
+        "speech_language": "Speech language",
+        "original_text": "Original text",
+        "translated_text": "{language} text",
+        "not_available": "Not available.",
+        "unknown_language": "unknown",
+    },
 }
 
 
@@ -51,9 +99,30 @@ def _short_task_id(task_id: str) -> str:
     return task_id.split("-", 1)[0] or task_id
 
 
-def _language_label(language_code: str | None) -> str:
+def _ui_language(language_code: str | None) -> str:
     normalized = (language_code or "").strip().lower()
-    return LANGUAGE_LABELS.get(normalized, normalized or "не определён")
+    return normalized if normalized in DOCUMENT_LABELS else "ru"
+
+
+def _labels(language_code: str | None) -> dict[str, str]:
+    return DOCUMENT_LABELS[_ui_language(language_code)]
+
+
+def _language_label(language_code: str | None, ui_language: str | None = None) -> str:
+    normalized = (language_code or "").strip().lower()
+    language_labels = LANGUAGE_LABELS[_ui_language(ui_language)]
+    return language_labels.get(normalized, normalized or _labels(ui_language)["unknown_language"])
+
+
+def _format_recording_started(value: str | None) -> str:
+    raw_value = (value or "").strip()
+    if not raw_value:
+        return "unknown"
+    try:
+        normalized = raw_value.replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized).strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return raw_value
 
 
 def _font_name() -> str:
@@ -82,25 +151,28 @@ def _build_payload(
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     metadata = metadata or {}
+    ui_language = _ui_language(str(metadata.get("ui_language") or "ru"))
+    labels = _labels(ui_language)
     segments = _subtitle_segments(transcript)
     speaker_names = sorted({segment.get("speaker", "Спикер 1") for segment in segments})
     duration = metadata.get("recording_duration_seconds") or _recording_duration(segments)
     target_language = translation.get("target_language") or "kk"
+    target_language_label = _language_label(target_language, ui_language)
+    detected_language_value = detected_language or transcript.get("detected_language")
     return {
-        "title": "Qtranscript: протокол записи",
+        "title": labels["title"],
+        "labels": labels,
         "task_id": task_id,
         "display_task_id": metadata.get("display_task_id") or _short_task_id(task_id),
         "processed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "recording_started_at": metadata.get("recording_started_at") or "unknown",
+        "recording_started_at": _format_recording_started(metadata.get("recording_started_at")),
         "recording_duration": _format_duration(duration),
         "speaker_count": len(speaker_names) if speaker_names else 0,
         "speaker_names": speaker_names,
-        "detected_language": detected_language or transcript.get("detected_language") or "unknown",
-        "detected_language_label": _language_label(
-            detected_language or transcript.get("detected_language")
-        ),
+        "detected_language": detected_language_value or "unknown",
+        "detected_language_label": _language_label(detected_language_value, ui_language),
         "translation_target_language": target_language,
-        "translation_title": f"{_language_label(target_language)} текст",
+        "translation_title": labels["translated_text"].format(language=target_language_label),
         "original_transcript": transcript.get("full_transcript") or "",
         "speaker_transcript": _speaker_transcript(segments),
         "translated_text": translation.get("translated_text") or "",
@@ -116,39 +188,39 @@ def _build_payload(
 
 
 def _plain_text(payload: dict[str, Any]) -> str:
+    labels = payload["labels"]
     parts = [
         payload["title"],
         _section(
-            "Сведения о записи",
+            labels["meta"],
             "\n".join(
                 [
-                    f"Номер задачи: {payload['display_task_id']}",
-                    f"Время начала записи: {payload['recording_started_at']}",
-                    f"Длительность записи: {payload['recording_duration']}",
-                    f"Количество спикеров: {payload['speaker_count']}",
-                    f"Язык речи: {payload['detected_language_label']}",
+                    f"{labels['task_id']}: {payload['display_task_id']}",
+                    f"{labels['recording_started_at']}: {payload['recording_started_at']}",
+                    f"{labels['recording_duration']}: {payload['recording_duration']}",
+                    f"{labels['speech_language']}: {payload['detected_language_label']}",
                 ]
             ),
         ),
-        _section("Оригинальный текст", payload["original_transcript"]),
+        _section(labels["original_text"], payload["original_transcript"]),
         _section(payload["translation_title"], payload["translated_text"]),
-        _section("Полная расшифровка по спикерам", payload["speaker_transcript"]),
     ]
     return "\n".join(parts).strip() + "\n"
 
 
 def _html(payload: dict[str, Any]) -> str:
+    labels = payload["labels"]
+
     def list_or_paragraph(value: Any) -> str:
         if isinstance(value, list):
             if not value:
-                return "<p>Not available.</p>"
+                return f"<p>{escape(labels['not_available'])}</p>"
             return "<ul>" + "".join(f"<li>{escape(str(item))}</li>" for item in value) + "</ul>"
-        return f"<p>{escape(_text(value).strip() or 'Not available.')}</p>"
+        return f"<p>{escape(_text(value).strip() or labels['not_available'])}</p>"
 
     sections = [
-        ("Оригинальный текст", payload["original_transcript"]),
+        (labels["original_text"], payload["original_transcript"]),
         (payload["translation_title"], payload["translated_text"]),
-        ("Полная расшифровка по спикерам", payload["speaker_transcript"]),
     ]
     body = "\n".join(
         f"<section><h2>{escape(title)}</h2>{list_or_paragraph(value)}</section>"
@@ -169,11 +241,10 @@ def _html(payload: dict[str, Any]) -> str:
   </head>
   <body>
     <h1>{escape(payload["title"])}</h1>
-    <p class="meta">Номер задачи: {escape(payload["display_task_id"])}</p>
-    <p class="meta">Время начала записи: {escape(payload["recording_started_at"])}</p>
-    <p class="meta">Длительность записи: {escape(payload["recording_duration"])}</p>
-    <p class="meta">Количество спикеров: {escape(str(payload["speaker_count"]))}</p>
-    <p class="meta">Язык речи: {escape(payload["detected_language_label"])}</p>
+    <p class="meta">{escape(labels["task_id"])}: {escape(payload["display_task_id"])}</p>
+    <p class="meta">{escape(labels["recording_started_at"])}: {escape(payload["recording_started_at"])}</p>
+    <p class="meta">{escape(labels["recording_duration"])}: {escape(payload["recording_duration"])}</p>
+    <p class="meta">{escape(labels["speech_language"])}: {escape(payload["detected_language_label"])}</p>
     {body}
   </body>
 </html>
@@ -270,18 +341,17 @@ def _vtt(transcript: dict[str, Any]) -> str:
 
 
 def _write_docx(path: Path, payload: dict[str, Any]) -> None:
+    labels = payload["labels"]
     document = Document()
     document.add_heading(payload["title"], level=0)
-    document.add_paragraph(f"Номер задачи: {payload['display_task_id']}")
-    document.add_paragraph(f"Время начала записи: {payload['recording_started_at']}")
-    document.add_paragraph(f"Длительность записи: {payload['recording_duration']}")
-    document.add_paragraph(f"Количество спикеров: {payload['speaker_count']}")
-    document.add_paragraph(f"Язык речи: {payload['detected_language_label']}")
+    document.add_paragraph(f"{labels['task_id']}: {payload['display_task_id']}")
+    document.add_paragraph(f"{labels['recording_started_at']}: {payload['recording_started_at']}")
+    document.add_paragraph(f"{labels['recording_duration']}: {payload['recording_duration']}")
+    document.add_paragraph(f"{labels['speech_language']}: {payload['detected_language_label']}")
 
     for title, key in [
-        ("Оригинальный текст", "original_transcript"),
+        (labels["original_text"], "original_transcript"),
         (payload["translation_title"], "translated_text"),
-        ("Полная расшифровка по спикерам", "speaker_transcript"),
     ]:
         document.add_heading(title, level=1)
         value = payload[key]
@@ -291,12 +361,13 @@ def _write_docx(path: Path, payload: dict[str, Any]) -> None:
             for item in value:
                 document.add_paragraph(str(item), style="List Bullet")
         else:
-            document.add_paragraph(_text(value).strip() or "Not available.")
+            document.add_paragraph(_text(value).strip() or labels["not_available"])
 
     document.save(path)
 
 
 def _write_pdf(path: Path, payload: dict[str, Any]) -> None:
+    labels = payload["labels"]
     font_name = _font_name()
     styles = getSampleStyleSheet()
     normal = ParagraphStyle(
@@ -333,21 +404,19 @@ def _write_pdf(path: Path, payload: dict[str, Any]) -> None:
     )
     story = [
         Paragraph(escape(payload["title"]), title),
-        Paragraph(escape(f"Номер задачи: {payload['display_task_id']}"), normal),
-        Paragraph(escape(f"Время начала записи: {payload['recording_started_at']}"), normal),
-        Paragraph(escape(f"Длительность записи: {payload['recording_duration']}"), normal),
-        Paragraph(escape(f"Количество спикеров: {payload['speaker_count']}"), normal),
-        Paragraph(escape(f"Язык речи: {payload['detected_language_label']}"), normal),
+        Paragraph(escape(f"{labels['task_id']}: {payload['display_task_id']}"), normal),
+        Paragraph(escape(f"{labels['recording_started_at']}: {payload['recording_started_at']}"), normal),
+        Paragraph(escape(f"{labels['recording_duration']}: {payload['recording_duration']}"), normal),
+        Paragraph(escape(f"{labels['speech_language']}: {payload['detected_language_label']}"), normal),
         Spacer(1, 8),
     ]
 
     for section_title, key in [
-        ("Оригинальный текст", "original_transcript"),
+        (labels["original_text"], "original_transcript"),
         (payload["translation_title"], "translated_text"),
-        ("Полная расшифровка по спикерам", "speaker_transcript"),
     ]:
         story.append(Paragraph(escape(section_title), heading))
-        text = _text(payload[key]).strip() or "Not available."
+        text = _text(payload[key]).strip() or labels["not_available"]
         for chunk in textwrap.wrap(text, width=180, replace_whitespace=False) or [text]:
             story.append(Paragraph(escape(chunk), normal))
 
@@ -362,6 +431,7 @@ def generate_documents(
     translation: dict[str, Any],
     summary: dict[str, Any],
     metadata: dict[str, Any] | None = None,
+    ui_language: str | None = None,
 ) -> dict[str, Path]:
     try:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -379,7 +449,7 @@ def generate_documents(
                 transcript,
                 translation,
                 summary,
-                metadata,
+                _metadata_with_ui_language(metadata, ui_language),
             )
         return paths
     except Exception as exc:
@@ -395,13 +465,21 @@ def generate_document(
     translation: dict[str, Any],
     summary: dict[str, Any],
     metadata: dict[str, Any] | None = None,
+    ui_language: str | None = None,
 ) -> Path:
     if file_format not in DOCUMENT_FORMATS:
         raise DocumentGenerationError(f"Unsupported document format: {file_format}")
 
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        payload = _build_payload(task_id, detected_language, transcript, translation, summary, metadata)
+        payload = _build_payload(
+            task_id,
+            detected_language,
+            transcript,
+            translation,
+            summary,
+            _metadata_with_ui_language(metadata, ui_language),
+        )
         writers: dict[str, Callable[[], None]] = {
             "txt": lambda: path.write_text(_plain_text(payload), encoding="utf-8"),
             "srt": lambda: path.write_text(_srt(transcript), encoding="utf-8"),
@@ -429,3 +507,13 @@ def generate_document(
         return path
     except Exception as exc:
         raise DocumentGenerationError(f"Document generation failed: {exc}") from exc
+
+
+def _metadata_with_ui_language(
+    metadata: dict[str, Any] | None,
+    ui_language: str | None,
+) -> dict[str, Any]:
+    prepared = dict(metadata or {})
+    if ui_language:
+        prepared["ui_language"] = ui_language
+    return prepared

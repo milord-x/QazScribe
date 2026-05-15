@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import FileResponse
 
 from backend.app.config import get_settings
@@ -65,11 +65,9 @@ def _read_json_document(task: dict, key: str) -> dict:
         ) from exc
 
 
-def _ensure_document(task_id: str, file_format: str, task: dict) -> Path:
+def _ensure_document(task_id: str, file_format: str, task: dict, ui_language: str) -> Path:
     filename = DOCUMENT_FILENAMES[file_format]
     path = _safe_output_path(task_id, filename)
-    if path.exists():
-        return path
 
     transcript = _read_json_document(task, "transcript_path")
     translation = _read_json_document(task, "translation_path")
@@ -89,6 +87,7 @@ def _ensure_document(task_id: str, file_format: str, task: dict) -> Path:
                 "recording_duration_seconds": task.get("recording_duration_seconds"),
                 "speaker_count": task.get("speaker_count"),
             },
+            ui_language,
         )
     except DocumentGenerationError as exc:
         raise HTTPException(
@@ -98,7 +97,11 @@ def _ensure_document(task_id: str, file_format: str, task: dict) -> Path:
 
 
 @router.get("/download/{task_id}/{file_format}")
-def download_file(task_id: str, file_format: str) -> FileResponse:
+def download_file(
+    task_id: str,
+    file_format: str,
+    lang: str = Query(default="ru", min_length=2, max_length=2),
+) -> FileResponse:
     task = get_task(task_id)
     if not task:
         raise HTTPException(
@@ -120,5 +123,5 @@ def download_file(task_id: str, file_format: str) -> FileResponse:
 
     filename = DOCUMENT_FILENAMES[file_format]
     media_type = FORMAT_TO_MEDIA_TYPE[file_format]
-    path = _ensure_document(task_id, file_format, task)
+    path = _ensure_document(task_id, file_format, task, lang)
     return FileResponse(path, media_type=media_type, filename=filename)

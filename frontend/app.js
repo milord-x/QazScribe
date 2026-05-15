@@ -110,7 +110,7 @@ const translations = {
     step3Copy:
       "Переключитесь в режим «Файл» и загрузите MP3, WAV, M4A, OGG, WEBM или MP4. Модель обработает запись на вашем сервере.",
     step4Title: "Отредактируйте и экспортируйте",
-    step4Copy: "Проверьте текст, внесите правки, затем скачайте TXT, SRT, VTT, JSON, PDF, DOCX или HTML.",
+    step4Copy: "Проверьте оригинал и перевод, затем скачайте PDF, DOCX, TXT или HTML.",
     sourceSpeech: "Источник речи",
     recordOrFile: "Запись или файл",
     mic: "Микрофон",
@@ -246,7 +246,7 @@ const translations = {
     step3Copy:
       "«Файл» режиміне өтіп, MP3, WAV, M4A, OGG, WEBM немесе MP4 жүктеңіз. Модель жазбаны серверде өңдейді.",
     step4Title: "Тексеріп, экспорттаңыз",
-    step4Copy: "Мәтінді тексеріп, түзетіңіз, кейін TXT, SRT, VTT, JSON, PDF, DOCX немесе HTML жүктеңіз.",
+    step4Copy: "Түпнұсқа мен аударманы тексеріп, кейін PDF, DOCX, TXT немесе HTML жүктеңіз.",
     sourceSpeech: "Сөйлеу көзі",
     recordOrFile: "Жазу немесе файл",
     mic: "Микрофон",
@@ -382,7 +382,7 @@ const translations = {
     step3Copy:
       "Switch to File mode and upload MP3, WAV, M4A, OGG, WEBM, or MP4. The model processes the recording on your server.",
     step4Title: "Review and export",
-    step4Copy: "Review the text, edit it, then download TXT, SRT, VTT, JSON, PDF, DOCX, or HTML.",
+    step4Copy: "Review the original and translation, then download PDF, DOCX, TXT, or HTML.",
     sourceSpeech: "Speech source",
     recordOrFile: "Recording or file",
     mic: "Microphone",
@@ -847,12 +847,9 @@ function renderDownloads(downloads) {
   }
 
   const labels = {
-    txt: "TXT",
-    srt: "SRT",
-    vtt: "VTT",
-    json: "JSON",
     pdf: "PDF",
     docx: "DOCX",
+    txt: "TXT",
     html: "HTML",
   };
 
@@ -861,9 +858,12 @@ function renderDownloads(downloads) {
       return;
     }
 
+    const href = new URL(downloads[format], window.location.origin);
+    href.searchParams.set("lang", currentSiteLanguage);
+
     const link = document.createElement("a");
     link.className = "download-link";
-    link.href = downloads[format];
+    link.href = href.toString();
     link.textContent = label;
     link.target = "_blank";
     link.rel = "noopener";
