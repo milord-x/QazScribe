@@ -41,6 +41,19 @@ DOCUMENT_FILENAMES = {
     "docx": "qtranscript_result.docx",
     "pdf": "qtranscript_result.pdf",
 }
+LANGUAGE_LABELS = {
+    "kk": "Казахский",
+    "ky": "Кыргызский",
+}
+
+
+def _short_task_id(task_id: str) -> str:
+    return task_id.split("-", 1)[0] or task_id
+
+
+def _language_label(language_code: str | None) -> str:
+    normalized = (language_code or "").strip().lower()
+    return LANGUAGE_LABELS.get(normalized, normalized or "не определён")
 
 
 def _font_name() -> str:
@@ -72,18 +85,25 @@ def _build_payload(
     segments = _subtitle_segments(transcript)
     speaker_names = sorted({segment.get("speaker", "Спикер 1") for segment in segments})
     duration = metadata.get("recording_duration_seconds") or _recording_duration(segments)
+    target_language = translation.get("target_language") or "kk"
     return {
         "title": "Qtranscript: протокол записи",
         "task_id": task_id,
+        "display_task_id": metadata.get("display_task_id") or _short_task_id(task_id),
         "processed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "recording_started_at": metadata.get("recording_started_at") or "unknown",
         "recording_duration": _format_duration(duration),
         "speaker_count": len(speaker_names) if speaker_names else 0,
         "speaker_names": speaker_names,
         "detected_language": detected_language or transcript.get("detected_language") or "unknown",
+        "detected_language_label": _language_label(
+            detected_language or transcript.get("detected_language")
+        ),
+        "translation_target_language": target_language,
+        "translation_title": f"{_language_label(target_language)} текст",
         "original_transcript": transcript.get("full_transcript") or "",
         "speaker_transcript": _speaker_transcript(segments),
-        "kazakh_translation": translation.get("translated_text") or "",
+        "translated_text": translation.get("translated_text") or "",
         "short_summary": summary.get("short_summary") or "",
         "detailed_summary": summary.get("detailed_summary") or "",
         "key_points": summary.get("key_points") or [],
@@ -102,24 +122,17 @@ def _plain_text(payload: dict[str, Any]) -> str:
             "Сведения о записи",
             "\n".join(
                 [
-                    f"Номер задачи: {payload['task_id']}",
+                    f"Номер задачи: {payload['display_task_id']}",
                     f"Время начала записи: {payload['recording_started_at']}",
                     f"Длительность записи: {payload['recording_duration']}",
                     f"Количество спикеров: {payload['speaker_count']}",
-                    f"Спикеры: {', '.join(payload['speaker_names']) or 'не определены'}",
-                    f"Обработано: {payload['processed_at']}",
-                    f"Определённый язык: {payload['detected_language']}",
+                    f"Язык речи: {payload['detected_language_label']}",
                 ]
             ),
         ),
-        _section("Казахская версия", payload["kazakh_translation"]),
+        _section("Оригинальный текст", payload["original_transcript"]),
+        _section(payload["translation_title"], payload["translated_text"]),
         _section("Полная расшифровка по спикерам", payload["speaker_transcript"]),
-        _section("Основной конспект", payload["detailed_summary"]),
-        _section("Краткое резюме", payload["short_summary"]),
-        _section("Ключевые пункты", payload["key_points"]),
-        _section("Решения", payload["decisions"]),
-        _section("Задачи", payload["action_items"]),
-        _section("Открытые вопросы", payload["risks_or_open_questions"]),
     ]
     return "\n".join(parts).strip() + "\n"
 
@@ -133,14 +146,9 @@ def _html(payload: dict[str, Any]) -> str:
         return f"<p>{escape(_text(value).strip() or 'Not available.')}</p>"
 
     sections = [
-        ("Казахская версия", payload["kazakh_translation"]),
+        ("Оригинальный текст", payload["original_transcript"]),
+        (payload["translation_title"], payload["translated_text"]),
         ("Полная расшифровка по спикерам", payload["speaker_transcript"]),
-        ("Основной конспект", payload["detailed_summary"]),
-        ("Краткое резюме", payload["short_summary"]),
-        ("Ключевые пункты", payload["key_points"]),
-        ("Решения", payload["decisions"]),
-        ("Задачи", payload["action_items"]),
-        ("Открытые вопросы", payload["risks_or_open_questions"]),
     ]
     body = "\n".join(
         f"<section><h2>{escape(title)}</h2>{list_or_paragraph(value)}</section>"
@@ -161,13 +169,11 @@ def _html(payload: dict[str, Any]) -> str:
   </head>
   <body>
     <h1>{escape(payload["title"])}</h1>
-    <p class="meta">Номер задачи: {escape(payload["task_id"])}</p>
+    <p class="meta">Номер задачи: {escape(payload["display_task_id"])}</p>
     <p class="meta">Время начала записи: {escape(payload["recording_started_at"])}</p>
     <p class="meta">Длительность записи: {escape(payload["recording_duration"])}</p>
     <p class="meta">Количество спикеров: {escape(str(payload["speaker_count"]))}</p>
-    <p class="meta">Спикеры: {escape(", ".join(payload["speaker_names"]) or "не определены")}</p>
-    <p class="meta">Обработано: {escape(payload["processed_at"])}</p>
-    <p class="meta">Определённый язык: {escape(payload["detected_language"])}</p>
+    <p class="meta">Язык речи: {escape(payload["detected_language_label"])}</p>
     {body}
   </body>
 </html>
@@ -266,23 +272,16 @@ def _vtt(transcript: dict[str, Any]) -> str:
 def _write_docx(path: Path, payload: dict[str, Any]) -> None:
     document = Document()
     document.add_heading(payload["title"], level=0)
-    document.add_paragraph(f"Номер задачи: {payload['task_id']}")
+    document.add_paragraph(f"Номер задачи: {payload['display_task_id']}")
     document.add_paragraph(f"Время начала записи: {payload['recording_started_at']}")
     document.add_paragraph(f"Длительность записи: {payload['recording_duration']}")
     document.add_paragraph(f"Количество спикеров: {payload['speaker_count']}")
-    document.add_paragraph(f"Спикеры: {', '.join(payload['speaker_names']) or 'не определены'}")
-    document.add_paragraph(f"Обработано: {payload['processed_at']}")
-    document.add_paragraph(f"Определённый язык: {payload['detected_language']}")
+    document.add_paragraph(f"Язык речи: {payload['detected_language_label']}")
 
     for title, key in [
-        ("Казахская версия", "kazakh_translation"),
+        ("Оригинальный текст", "original_transcript"),
+        (payload["translation_title"], "translated_text"),
         ("Полная расшифровка по спикерам", "speaker_transcript"),
-        ("Основной конспект", "detailed_summary"),
-        ("Краткое резюме", "short_summary"),
-        ("Ключевые пункты", "key_points"),
-        ("Решения", "decisions"),
-        ("Задачи", "action_items"),
-        ("Открытые вопросы", "risks_or_open_questions"),
     ]:
         document.add_heading(title, level=1)
         value = payload[key]
@@ -334,25 +333,18 @@ def _write_pdf(path: Path, payload: dict[str, Any]) -> None:
     )
     story = [
         Paragraph(escape(payload["title"]), title),
-        Paragraph(escape(f"Номер задачи: {payload['task_id']}"), normal),
+        Paragraph(escape(f"Номер задачи: {payload['display_task_id']}"), normal),
         Paragraph(escape(f"Время начала записи: {payload['recording_started_at']}"), normal),
         Paragraph(escape(f"Длительность записи: {payload['recording_duration']}"), normal),
         Paragraph(escape(f"Количество спикеров: {payload['speaker_count']}"), normal),
-        Paragraph(escape(f"Спикеры: {', '.join(payload['speaker_names']) or 'не определены'}"), normal),
-        Paragraph(escape(f"Обработано: {payload['processed_at']}"), normal),
-        Paragraph(escape(f"Определённый язык: {payload['detected_language']}"), normal),
+        Paragraph(escape(f"Язык речи: {payload['detected_language_label']}"), normal),
         Spacer(1, 8),
     ]
 
     for section_title, key in [
-        ("Казахская версия", "kazakh_translation"),
+        ("Оригинальный текст", "original_transcript"),
+        (payload["translation_title"], "translated_text"),
         ("Полная расшифровка по спикерам", "speaker_transcript"),
-        ("Основной конспект", "detailed_summary"),
-        ("Краткое резюме", "short_summary"),
-        ("Ключевые пункты", "key_points"),
-        ("Решения", "decisions"),
-        ("Задачи", "action_items"),
-        ("Открытые вопросы", "risks_or_open_questions"),
     ]:
         story.append(Paragraph(escape(section_title), heading))
         text = _text(payload[key]).strip() or "Not available."

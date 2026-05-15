@@ -149,7 +149,9 @@ const translations = {
     transcript: "Распознанный текст",
     detectedLanguage: "Определённый язык",
     speakerTranscript: "Полная расшифровка по спикерам",
-    kazakhVersion: "Казахская версия",
+    kazakhVersion: "Перевод",
+    kazakhText: "Казахский текст",
+    kyrgyzText: "Кыргызский текст",
     fullNotes: "Основной полный конспект",
     shortSummary: "Краткое резюме",
     downloads: "Скачать результат",
@@ -283,7 +285,9 @@ const translations = {
     transcript: "Танылған мәтін",
     detectedLanguage: "Анықталған тіл",
     speakerTranscript: "Спикерлер бойынша толық мәтін",
-    kazakhVersion: "Қазақша нұсқа",
+    kazakhVersion: "Аударма",
+    kazakhText: "Қазақша мәтін",
+    kyrgyzText: "Қырғызша мәтін",
     fullNotes: "Негізгі толық конспект",
     shortSummary: "Қысқа түйіндеме",
     downloads: "Нәтижені жүктеу",
@@ -417,7 +421,9 @@ const translations = {
     transcript: "Recognized text",
     detectedLanguage: "Detected language",
     speakerTranscript: "Full speaker transcript",
-    kazakhVersion: "Kazakh version",
+    kazakhVersion: "Translation",
+    kazakhText: "Kazakh text",
+    kyrgyzText: "Kyrgyz text",
     fullNotes: "Main full notes",
     shortSummary: "Short summary",
     downloads: "Download result",
@@ -720,6 +726,16 @@ async function readResponsePayload(response) {
   };
 }
 
+function translationTitle(targetLanguage) {
+  if (targetLanguage === "kk") {
+    return t("kazakhText");
+  }
+  if (targetLanguage === "ky") {
+    return t("kyrgyzText");
+  }
+  return t("kazakhVersion");
+}
+
 async function loadHealth() {
   try {
     const response = await fetch("/api/health");
@@ -744,6 +760,7 @@ function setTaskView({
   message,
   error,
   detectedLanguage,
+  translationTargetLanguage,
   transcriptPreview,
   translationPreview,
   summaryPreview,
@@ -775,6 +792,12 @@ function setTaskView({
   }
   if (detectedLanguage !== undefined) {
     detectedLanguageEl.textContent = detectedLanguage || t("noTask");
+  }
+  if (translationTargetLanguage !== undefined) {
+    translationPreviewEl
+      .closest("section")
+      ?.querySelector("h2")
+      ?.replaceChildren(document.createTextNode(translationTitle(translationTargetLanguage)));
   }
   if (transcriptPreview !== undefined) {
     setTextValue(
@@ -862,6 +885,7 @@ async function loadTask(taskId) {
     message: statusMessage(task.status, task.message),
     error: task.error,
     detectedLanguage: task.detected_language,
+    translationTargetLanguage: task.translation_target_language,
     transcriptPreview: task.transcript_preview,
     translationPreview: task.translation_preview,
     summaryPreview: task.summary_preview,

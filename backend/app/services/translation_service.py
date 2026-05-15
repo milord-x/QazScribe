@@ -62,17 +62,35 @@ def _chat_completion(settings: Settings, system_prompt: str, user_prompt: str) -
         raise TranslationError(f"Translation provider failed: {exc}") from exc
 
 
-def _fallback_translation(text: str, error: str | None = None) -> TranslationResult:
+LANGUAGE_NAMES = {
+    "kk": "Kazakh",
+    "ky": "Kyrgyz",
+}
+
+
+def _target_language(source_language: str | None) -> str:
+    normalized = (source_language or "").strip().lower()
+    if normalized.startswith("kk") or normalized == "kazakh":
+        return "ky"
+    return "kk"
+
+
+def _fallback_translation(
+    text: str,
+    target_language: str = "kk",
+    error: str | None = None,
+) -> TranslationResult:
     if text.strip():
         translated_text = text.strip()
     else:
+        language_name = "Казахский" if target_language == "kk" else "Кыргызский"
         translated_text = (
-            "Казахский перевод не сформирован, потому что распознанный текст пустой "
+            f"{language_name} перевод не сформирован, потому что распознанный текст пустой "
             "или речь не обнаружена."
         )
 
     return TranslationResult(
-        target_language="kk",
+        target_language=target_language,
         translated_text=translated_text,
         provider="fallback",
         fallback_used=True,
@@ -80,29 +98,39 @@ def _fallback_translation(text: str, error: str | None = None) -> TranslationRes
     )
 
 
-def translate_to_kazakh(text: str, settings: Settings) -> TranslationResult:
+def translate_transcript(
+    text: str,
+    settings: Settings,
+    source_language: str | None = None,
+) -> TranslationResult:
+    target_language = _target_language(source_language)
     if not text.strip():
-        return _fallback_translation(text)
+        return _fallback_translation(text, target_language)
 
     if not _provider_configured(settings):
-        return _fallback_translation(text)
+        return _fallback_translation(text, target_language)
 
+    target_name = LANGUAGE_NAMES[target_language]
     try:
         translated_text = _chat_completion(
             settings,
-            "You translate meeting and conference transcripts into clear Kazakh.",
+            f"You translate meeting and conference transcripts into clear {target_name}.",
             (
-                "Translate the following transcript into Kazakh. Preserve meaning, "
+                f"Translate the following transcript into {target_name}. Preserve meaning, "
                 "names, numbers, and technical terms where appropriate. Return only "
-                "the translated Kazakh text without explanations or notes.\n\n"
+                f"the translated {target_name} text without explanations or notes.\n\n"
                 f"{text}"
             ),
         )
         return TranslationResult(
-            target_language="kk",
+            target_language=target_language,
             translated_text=translated_text,
             provider=settings.llm_provider,
             fallback_used=False,
         )
     except TranslationError as exc:
-        return _fallback_translation(text, str(exc))
+        return _fallback_translation(text, target_language, str(exc))
+
+
+def translate_to_kazakh(text: str, settings: Settings) -> TranslationResult:
+    return translate_transcript(text, settings, "ky")

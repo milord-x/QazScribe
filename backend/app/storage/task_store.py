@@ -24,6 +24,7 @@ def create_task(task_id: str, filename: str, stored_path: str) -> dict[str, Any]
         "translation_path": None,
         "summary_path": None,
         "detected_language": None,
+        "translation_target_language": None,
         "transcript_preview": None,
         "translation_preview": None,
         "summary_preview": None,
@@ -64,6 +65,7 @@ def update_task(
     translation_path: str | None = None,
     summary_path: str | None = None,
     detected_language: str | None = None,
+    translation_target_language: str | None = None,
     transcript_preview: str | None = None,
     translation_preview: str | None = None,
     summary_preview: str | None = None,
@@ -100,6 +102,8 @@ def update_task(
             task["summary_path"] = summary_path
         if detected_language is not None:
             task["detected_language"] = detected_language
+        if translation_target_language is not None:
+            task["translation_target_language"] = translation_target_language
         if transcript_preview is not None:
             task["transcript_preview"] = transcript_preview
         if translation_preview is not None:

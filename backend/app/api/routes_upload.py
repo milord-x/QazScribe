@@ -11,7 +11,7 @@ from backend.app.services.asr_service import ASRError, transcribe_audio
 from backend.app.services.audio_service import AudioConversionError, convert_to_wav_16khz_mono
 from backend.app.services.document_service import DOCUMENT_FORMATS
 from backend.app.services.summary_service import generate_structured_notes
-from backend.app.services.translation_service import translate_to_kazakh
+from backend.app.services.translation_service import translate_transcript
 from backend.app.storage.task_store import create_task, update_task
 
 
@@ -141,7 +141,7 @@ def _process_uploaded_audio(
             task_id,
             status="translating",
             progress=72,
-            message="Translating transcript to Kazakh",
+            message="Translating transcript",
             transcript_path=_stored_path(transcript_path),
             detected_language=transcription.detected_language,
             transcript_preview=transcription.full_transcript[:1200],
@@ -150,7 +150,11 @@ def _process_uploaded_audio(
             speaker_count=speaker_count,
             error="",
         )
-        translation = translate_to_kazakh(transcription.full_transcript, settings)
+        translation = translate_transcript(
+            transcription.full_transcript,
+            settings,
+            transcription.detected_language,
+        )
         translation_path.write_text(
             json.dumps(translation.to_dict(), ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -162,6 +166,7 @@ def _process_uploaded_audio(
             progress=86,
             message="Generating structured meeting notes",
             translation_path=_stored_path(translation_path),
+            translation_target_language=translation.target_language,
             translation_preview=translation.translated_text,
             error="",
         )

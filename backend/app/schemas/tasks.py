@@ -24,6 +24,7 @@ class TaskResponse(BaseModel):
     result_available: bool = False
     filename: str | None = None
     detected_language: str | None = None
+    translation_target_language: str | None = None
     transcript_preview: str | None = None
     translation_preview: str | None = None
     summary_preview: str | None = None

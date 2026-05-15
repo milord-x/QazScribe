@@ -36,6 +36,9 @@ def _with_full_translation_preview(task: dict) -> dict:
     translated_text = str(translation_data.get("translated_text") or "").strip()
     if translated_text:
         hydrated_task["translation_preview"] = translated_text
+    target_language = str(translation_data.get("target_language") or "").strip()
+    if target_language:
+        hydrated_task["translation_target_language"] = target_language
 
     return hydrated_task
 
